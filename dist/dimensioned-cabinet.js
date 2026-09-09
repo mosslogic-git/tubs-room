@@ -4,7 +4,7 @@ import * as THREE from './vendor/three.module.js';
 // Build at metre scale; never stretch cones or grille geometry to fit a cabinet.
 export function dimensionedCabinet(id,size){
  const [w,h,d]=size,group=new THREE.Group();
- const shell=new THREE.MeshStandardMaterial({color:0xb5b9ae,roughness:.82});
+ const shell=new THREE.MeshStandardMaterial({color:0x173d2a,roughness:.82});
  const dark=new THREE.MeshStandardMaterial({color:0x111514,roughness:.92});
  const cone=new THREE.MeshStandardMaterial({color:0x252c29,roughness:.85});
  const metal=new THREE.MeshStandardMaterial({color:0x6b746d,roughness:.45,metalness:.65});

@@ -101,7 +101,11 @@ async function init(){
  for(const x of [-.499,.499]){for(let i=0;i<6;i++){const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,0,i/5-.5),new THREE.Vector3(x,1,i/5-.5)]);room.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:0xa6b599,transparent:true,opacity:.16})));}}
  for(const x of [-.42,.42]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.003,.002,.84),new THREE.MeshBasicMaterial({color:0xc5d8af}));strip.position.set(x,.996,0);room.add(strip);strips.push(strip);}
  const threshold=new THREE.Mesh(new THREE.BoxGeometry(.96,.003,.002),new THREE.MeshBasicMaterial({color:0xa6c58a,transparent:true,opacity:.45}));threshold.position.set(0,.003,-.46);room.add(threshold);
- artMaterial=new THREE.MeshBasicMaterial({transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide});art=new THREE.Mesh(new THREE.PlaneGeometry(1,1),artMaterial);scene.add(art);
+ artMaterial=new THREE.MeshBasicMaterial({transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide});art=new THREE.Mesh(new THREE.PlaneGeometry(1,1),artMaterial);
+ // Stable transparent passes: walls, wall artwork, then scene effects.
+ // Keep depth testing so foreground cabinets still occlude the artwork naturally.
+ back.renderOrder=-2;sideWalls.forEach(w=>w.renderOrder=-2);art.renderOrder=-1;
+ scene.add(art);
  const tex=await new THREE.TextureLoader().loadAsync('./assets/tubs-lady.webp');tex.colorSpace=THREE.SRGBColorSpace;artMaterial.map=tex;artMaterial.needsUpdate=true;
  new ResizeObserver(()=>{const w=$('viewport').clientWidth,h=$('viewport').clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();if(state.view!=='inside')setView(state.view);}).observe($('viewport'));
  const vp=$('viewport');

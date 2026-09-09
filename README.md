@@ -3,7 +3,7 @@
 Static Three.js experience. Serve `dist/` using a static web server.
 
 ## Experience
-The primary view is inside the room at listening height. Drag or use arrow keys on the scene to look around. As floor area changes, walls, ceiling, lighting strips, cabinet positions and quantities animate together. The left HiFi / BigFi / Stack navigation follows the active concept pairing. Selecting a product moves the camera to a cabinet; Back to the room restores the interior view. Overview and plan views remain available. Club lighting switches the room lighting. Fine tune exposes width, depth, height, the original four model appearances and centre-bass placement. Escape closes fine tuning or leaves product focus. Reduced-motion preferences disable transition interpolation. Loading and WebGL error states leave room and product controls available.
+The primary view is inside the room at listening height. Drag on the scene to look around; WASD or arrow keys move through the room. As floor area changes, walls, ceiling, lighting strips, cabinet positions and quantities animate together. The left HiFi / BigFi / Stack navigation follows the active concept pairing. Selecting a product moves the camera to a cabinet; Back to the room restores the interior view. Overview and plan views remain available. Club lighting switches the room lighting. Fine tune exposes width, depth, height, the original four model appearances and centre-bass placement. Escape closes fine tuning or leaves product focus. Reduced-motion preferences disable transition interpolation. Loading and WebGL error states leave room and product controls available.
 
 ## Brand reference and assets
 The corrected reference is https://tubs-audio-nz.netlify.app/. Product names, roles, the brand logo, central lady artwork, Fraunces, IBM Plex Sans and IBM Plex Mono follow that site. Fonts are locally hosted Google Fonts downloads. The image assets were copied from `/tubs-audio-logo.png` and `/hero-lady.webp` without image edits. All four Meshy model uploads remain represented by detailed derivatives of about 180,000 triangles each, switching to ~30,000 triangles beyond 11 m. Original UVs and PBR maps are retained where available; the incomplete Honeycomb upload has complete geometry but truncated texture bytes, so its broken texture references are removed in working copies and a satin cabinet material is applied. The untextured uploads also use satin materials. Textures are capped at 2K; Meshopt compression and shared model geometry keep transfers and rendering manageable; original uploads remain unchanged. Three.js 0.185.1 is locally vendored with its MIT license. Blender is optional for physical scaling, UVs, texture baking and exact product matching; this version does not require Blender.
@@ -35,3 +35,22 @@ Sound opens animated geometric rays, exact first-order receiver reflections, abs
 ## Rebuilding model assets
 
 Install development dependencies with `npm ci --prefix scripts`, then run `node scripts/optimize-models.mjs INPUT_DIRECTORY dist/assets` followed by `node scripts/compress-models.mjs dist/assets`. Always start from uploads: compression is a final step, not a repeated edit. These scripts never write to the source uploads. The old Python optimiser is superseded. Meshopt decoder is locally vendored with its license. Model textures are shared between repeated cabinets, while each instance owns its material; high/low models use 15% distance hysteresis. No new product CAD has been invented.
+
+## Camera zoom
+Explore → Room includes a 75–300% camera zoom slider and minus/plus buttons next to the existing Inside / Overview / Plan viewpoints. Zoom is shared across viewpoints, room changes, product focus, and viewport resizing. Reset view and Reset room restore 100%. The lens zoom preserves camera position and direction.
+
+Two-finger pinch on the scene and the mouse wheel use the same zoom controller; spread fingers to zoom in and bring them together to zoom out. One-finger movement still looks around inside and orbits in Overview / Plan. Touch handling is confined to the scene, leaving the surrounding interface's browser gestures alone.
+
+Run `node tests/camera-zoom.mjs` for projection, controls, zoom bounds, reset, pinch transitions, cancellation, capture loss, multi-touch and wheel checks. These automated checks use the real Three.js perspective camera and simulated input events; physical touchscreen and visual browser QA have not been performed.
+
+## Walk around the room
+In Inside view, click the scene and hold WASD or arrow keys to move forward/backward or step sideways relative to the viewing direction. Drag to look through 360 degrees. The on-screen movement arrows support press-and-hold touch, mouse, and keyboard activation; you can hold a movement button with one thumb while looking with the other. Pinch zoom remains independent of walking.
+
+Walking is constrained 0.35 m inside the room walls, including while dimensions animate smaller. It does not implement speaker cabinet collision. Movement stops when focus leaves the scene/controls, the window loses focus, the page is hidden, Explore opens, or the viewpoint changes. Reset view restores the starting position and zoom. Walking from a product close-up continues from the current camera position.
+
+Run `node tests/camera-walk.mjs` for movement and input-lifecycle checks. These and the existing zoom/acoustic checks pass; browser and physical touchscreen QA remain unperformed.
+
+## Inspect a speaker
+Click or tap a cabinet directly in the 3D scene to select that exact instance, or choose a product in the rail. The camera automatically frames its physical cabinet dimensions, including stacked speakers and narrow screen layouts. Selection starts at 100% zoom. Pinch, scroll or use the close-up ± buttons to magnify details up to 300%; Fit speaker restores the full cabinet. Drag gently around the cabinet while keeping it centered. Back returns to the room; walking also exits inspection. Dragging, pinching and cancelled touches do not select objects.
+
+`node tests/speaker-focus.mjs` verifies cabinet framing across screen ratios, magnification, nearest/individual stack cabinet selection, and tap/drag/pinch separation. Browser and physical-device QA remain unperformed.

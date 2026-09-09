@@ -54,3 +54,6 @@ Run `node tests/camera-walk.mjs` for movement and input-lifecycle checks. These 
 Click or tap a cabinet directly in the 3D scene to select that exact instance, or choose a product in the rail. The camera automatically frames its physical cabinet dimensions, including stacked speakers and narrow screen layouts. Selection starts at 100% zoom. Pinch, scroll or use the close-up ± buttons to magnify details up to 300%; Fit speaker restores the full cabinet. Drag gently around the cabinet while keeping it centered. Back returns to the room; walking also exits inspection. Dragging, pinching and cancelled touches do not select objects.
 
 `node tests/speaker-focus.mjs` verifies cabinet framing across screen ratios, magnification, nearest/individual stack cabinet selection, and tap/drag/pinch separation. Browser and physical-device QA remain unperformed.
+
+## Floor DJ monitors
+Two DJ monitor stacks sit directly on the floor behind the main system. No table or stands are rendered. Each base sub uses the exact dimensions of the current main-system sub (GC118 for the small layout); each DC12 top rests on its sub. Monitors face the DJ position and remain selectable for inspection. They are visual additions and are excluded from the main-system acoustic calculations.

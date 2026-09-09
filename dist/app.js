@@ -1,9 +1,10 @@
+import {speakerSpecs} from './speaker-specs.js';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {MeshoptDecoder} from './vendor/meshopt_decoder.mjs';
 import {RoomEnvironment} from './vendor/RoomEnvironment.js';
-import {configuration,stages,placements,dimensionsForArea} from './config.js';
+import {configuration,stages,placements,dimensionsForArea,monitorPlacements} from './config.js';
 import {speakerFrame,pickSpeaker,bindSpeakerSelection} from './speaker-focus.js';
 import {createRoomWalk,bindRoomWalk} from './camera-walk.js';
 import {createCameraZoom,bindCameraGestures} from './camera-zoom.js';
@@ -71,11 +72,11 @@ function createCabinet(item){
  obj.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.castShadow=true;m.receiveShadow=true;}});
  const scaled=new THREE.Group();scaled.add(obj);scaled.scale.set(item.size[0]/size.x,item.size[1]/size.y,item.size[2]/size.z);
  const shell=new THREE.Group();shell.add(scaled);scene.add(shell);shell.scale.setScalar(reduced?1:.001);shell.position.set(item.x,item.y,item.z);
- return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.index}-${item.productId}`,role:item.role,productId:item.productId,size:[...item.size]};
+ return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.zone||"main"}-${item.index}-${item.productId}`,role:item.role,productId:item.productId,size:[...item.size]};
 }
 function arrange(){
  const old=[...speakers],next=[];
- for(const item of placements(state)){const key=`${item.index}-${item.productId}`,i=old.findIndex(s=>s.key===key),s=i<0?createCabinet(item):old.splice(i,1)[0];s.position.set(item.x,item.y,item.z);s.scale=1;next.push(s);}
+ for(const item of [...placements(state),...monitorPlacements(state)]){const key=`${item.zone||"main"}-${item.index}-${item.productId}`,i=old.findIndex(s=>s.key===key),s=i<0?createCabinet(item):old.splice(i,1)[0];s.position.set(item.x,item.y,item.z);s.object.rotation.y=item.rotation||0;s.scale=1;next.push(s);}
  old.forEach(s=>s.scale=0);speakers=[...next,...old];
 }
 function floorTexture(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),data=x.createImageData(128,128);let seed=38;for(let i=0;i<data.data.length;i+=4){seed=(seed*16807)%2147483647;const n=125+seed%18;data.data.set([n,n,n,255],i);}x.putImageData(data,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(18,18);return t;}
@@ -105,7 +106,7 @@ async function init(){
  new ResizeObserver(()=>{const w=$('viewport').clientWidth,h=$('viewport').clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();if(state.view!=='inside')setView(state.view);}).observe($('viewport'));
  const vp=$('viewport');
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
- bindSpeakerSelection(vp,(x,y)=>{if(!ready)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1);scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);raycaster.setFromCamera(pointer,camera);const speaker=pickSpeaker(raycaster,speakers);if(speaker){const product=configuration(state.width*state.depth).products.find(p=>p.id===speaker.productId);if(product)focusProduct(product,speaker);}});
+ bindSpeakerSelection(vp,(x,y)=>{if(!ready)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1);scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);raycaster.setFromCamera(pointer,camera);const speaker=pickSpeaker(raycaster,speakers);if(speaker){const product=configuration(state.width*state.depth).products.find(p=>p.id===speaker.productId)||{id:speaker.productId,...speakerSpecs[speaker.productId]};if(product)focusProduct(product,speaker);}});
  bindCameraGestures(vp,zoom,{onStart:()=>{drag=null;vp.focus({preventScroll:true});},onDrag:(dx,dy)=>{if(state.view==='inside'){yaw-=dx*.002;pitch=THREE.MathUtils.clamp(pitch+dy*.0015,-1.2,1.2);if(state.focus){yaw=THREE.MathUtils.clamp(yaw,-1.2,1.2);pitch=THREE.MathUtils.clamp(pitch,-.45,.6);}}else{controls.rotateLeft(2*Math.PI*dx/vp.clientHeight);controls.rotateUp(2*Math.PI*dy/vp.clientHeight);controls.update();}}});
  vp.addEventListener('pointerdown',e=>{if(state.view!=='inside'||e.button!==0)return;vp.focus({preventScroll:true});drag={x:e.clientX,y:e.clientY,yaw,pitch};vp.setPointerCapture(e.pointerId);});vp.addEventListener('pointermove',e=>{if(!drag)return;yaw=drag.yaw-(e.clientX-drag.x)*.002;pitch=THREE.MathUtils.clamp(drag.pitch+(e.clientY-drag.y)*.0015,-1.2,1.2);if(state.focus){yaw=THREE.MathUtils.clamp(yaw,-1.2,1.2);pitch=THREE.MathUtils.clamp(pitch,-.45,.6);drag={x:e.clientX,y:e.clientY,yaw,pitch};}});const stop=()=>drag=null;vp.addEventListener('pointerup',stop);vp.addEventListener('pointercancel',stop);vp.addEventListener('lostpointercapture',stop);
  bindRoomWalk({surface:vp,pad:$('walk-controls'),walk,enabled:()=>ready&&state.view==='inside'&&$('details').hidden,onStart:()=>{

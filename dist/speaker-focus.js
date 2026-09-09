@@ -10,7 +10,7 @@ export function speakerFrame(speaker,aspect,yaw=0,pitch=0) {
  const distance=radius/Math.sin(Math.min(vertical,horizontal))*1.15;
  const turn=Math.max(-1.2,Math.min(1.2,yaw));
  const tilt=Math.max(-.45,Math.min(.6,pitch));
- const position=target.clone().add(new Vector3(Math.sin(turn)*Math.cos(tilt),Math.sin(tilt),Math.cos(turn)*Math.cos(tilt)).multiplyScalar(distance));
+ const position=target.clone().add(new Vector3(Math.sin(turn)*Math.cos(tilt),Math.sin(tilt),Math.cos(turn)*Math.cos(tilt)).multiplyScalar(distance).applyAxisAngle(new Vector3(0,1,0),speaker.object.rotation.y));
  return {target,position};
 }
 

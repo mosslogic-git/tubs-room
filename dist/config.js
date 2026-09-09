@@ -11,14 +11,29 @@ export function dimensionsForArea(area,ratio=.8){let width=Math.sqrt(area*ratio)
 export function placements(state){
  const c=configuration(state.width*state.depth),topId=c.products.find(p=>p.role==='top').id,bassId=c.products.find(p=>p.role==='bass')?.id;
  const ts=speakerSpecs[topId].size,bs=bassId?speakerSpecs[bassId].size:[0,0,0],model=state.model==='auto'?c.model:Number(state.model),items=[],n=c.subs/2,gap=.035;
- const cols=n>1?2:1,stackWidth=n?cols*bs[0]+(cols-1)*gap:ts[0],spread=Math.min(4.8,state.width/2-stackWidth/2-.3),z=-state.depth/2+Math.max(bs[2],ts[2])/2+.3;
+ const cols=n>1?2:1,stackWidth=n?cols*bs[0]+(cols-1)*gap:ts[0],spread=Math.min(4.8,state.width/2-stackWidth/2-.3),z=-state.depth/2+Math.min(2.8,state.depth*.44);
  for(const side of [-1,1]){
   for(let i=0;i<n;i++){
    let x=side*spread+(n>1?(i%2-.5)*(bs[0]+gap):0),y=Math.floor(i/2)*bs[1],zz=z;
    if(state.cluster){const j=(side<0?0:n)+i,k=Math.max(1,Math.min(4,Math.floor((state.width-.5)/(bs[0]+gap))));x=(j%k-(k-1)/2)*(bs[0]+gap);y=0;zz=z+.7+Math.floor(j/k)*(bs[2]+gap);}
    items.push({index:3,role:'bass',productId:bassId,x,y,z:zz,height:bs[1],size:bs});
   }
-  for(let i=0;i<c.tops/2;i++)items.push({index:model,role:'top',productId:topId,x:side*spread+(i-(c.tops/2-1)/2)*(bs[0]+gap),y:state.cluster?0:Math.ceil(n/2)*bs[1],z:state.cluster?-state.depth/2+ts[2]/2+.15:z,height:ts[1],size:ts});
+  for(let i=0;i<c.tops/2;i++)items.push({index:model,role:'top',productId:topId,x:side*spread+(i-(c.tops/2-1)/2)*(bs[0]+gap),y:state.cluster?0:Math.ceil(n/2)*bs[1],z:z,height:ts[1],size:ts});
  }
  return items;
+}
+
+// Floor-standing DJ monitor stacks; base cabinets share the main sub dimensions.
+export function monitorPlacements(state){
+ const config=configuration(state.width*state.depth);
+ const bassId=config.products.find(p=>p.role==='bass')?.id||'gc118-sub';
+ const bs=speakerSpecs[bassId].size,ts=speakerSpecs.dc12.size;
+ const x=Math.min(1.65,state.width/2-bs[0]/2-.3),z=-state.depth/2+1.15;
+ return [-1,1].flatMap(side=>{
+  const rotation=Math.atan2(-side*x,-.6);
+  return [
+   {index:3,role:'bass',productId:bassId,x:side*x,y:0,z,size:bs,height:bs[1],zone:'monitor',rotation},
+   {index:2,role:'top',productId:'dc12',x:side*x,y:bs[1],z,size:ts,height:ts[1],zone:'monitor',rotation}
+  ];
+ });
 }

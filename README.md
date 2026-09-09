@@ -57,3 +57,6 @@ Click or tap a cabinet directly in the 3D scene to select that exact instance, o
 
 ## Floor DJ monitors
 Two DJ monitor stacks sit directly on the floor behind the main system. No table or stands are rendered. Each base sub uses the exact dimensions of the current main-system sub (GC118 for the small layout); each DC12 top rests on its sub. Monitors face the DJ position and remain selectable for inspection. They are visual additions and are excluded from the main-system acoustic calculations.
+
+## Cabinet proportions
+Default cabinets are now clean dimensioned representations built directly in metres. Cabinet envelopes match the specification table, driver rings remain circular, and grille pitch is constant. GC118 height retains the documented assumption. Surface details are illustrative, not manufacturer CAD. Optional imported appearances use uniform scaling to fit within the target envelope, so they cannot squash driver/grille shapes; their envelopes can be smaller than the specified cabinet.

@@ -1,3 +1,4 @@
+import {dimensionedCabinet} from './dimensioned-cabinet.js';
 import {speakerSpecs} from './speaker-specs.js';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
@@ -66,17 +67,21 @@ function setView(view,retainFocus=false){
  if(view!=='inside'){const s=Math.max(state.width,state.depth),mobile=camera.aspect<.7?1.7:1.2;controls.target.set(0,.8,0);camera.fov=45;camera.position.set(view==='plan'?0:s*.9*mobile,s*(view==='plan'?1.7:1.05)*mobile,view==='plan'?.01:s*1.15*mobile);camera.lookAt(controls.target);camera.updateProjectionMatrix();controls.update();}
 }
 function createCabinet(item){
+ if(state.model==='auto'||item.zone==='monitor'){
+  const shell=dimensionedCabinet(item.productId,item.size);scene.add(shell);shell.position.set(item.x,item.y,item.z);shell.scale.setScalar(reduced?1:.001);
+  return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.zone||"main"}-${item.index}-${item.productId}-${state.model}`,role:item.role,productId:item.productId,size:[...item.size]};
+ }
  const obj=new THREE.LOD();obj.addLevel(templates[item.index].high.clone(true),0);obj.addLevel(templates[item.index].low.clone(true),11,.15);if(item.role==='bass')obj.rotation.z=Math.PI/2;
  obj.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(obj),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
  obj.position.set(-center.x,-box.min.y,-center.z);
  obj.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.castShadow=true;m.receiveShadow=true;}});
- const scaled=new THREE.Group();scaled.add(obj);scaled.scale.set(item.size[0]/size.x,item.size[1]/size.y,item.size[2]/size.z);
+ const scaled=new THREE.Group();scaled.add(obj);scaled.scale.setScalar(Math.min(item.size[0]/size.x,item.size[1]/size.y,item.size[2]/size.z));
  const shell=new THREE.Group();shell.add(scaled);scene.add(shell);shell.scale.setScalar(reduced?1:.001);shell.position.set(item.x,item.y,item.z);
- return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.zone||"main"}-${item.index}-${item.productId}`,role:item.role,productId:item.productId,size:[...item.size]};
+ return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.zone||"main"}-${item.index}-${item.productId}-${state.model}`,role:item.role,productId:item.productId,size:[...item.size]};
 }
 function arrange(){
  const old=[...speakers],next=[];
- for(const item of [...placements(state),...monitorPlacements(state)]){const key=`${item.zone||"main"}-${item.index}-${item.productId}`,i=old.findIndex(s=>s.key===key),s=i<0?createCabinet(item):old.splice(i,1)[0];s.position.set(item.x,item.y,item.z);s.object.rotation.y=item.rotation||0;s.scale=1;next.push(s);}
+ for(const item of [...placements(state),...monitorPlacements(state)]){const key=`${item.zone||"main"}-${item.index}-${item.productId}-${state.model}`,i=old.findIndex(s=>s.key===key),s=i<0?createCabinet(item):old.splice(i,1)[0];s.position.set(item.x,item.y,item.z);s.object.rotation.y=item.rotation||0;s.scale=1;next.push(s);}
  old.forEach(s=>s.scale=0);speakers=[...next,...old];
 }
 function floorTexture(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),data=x.createImageData(128,128);let seed=38;for(let i=0;i<data.data.length;i+=4){seed=(seed*16807)%2147483647;const n=125+seed%18;data.data.set([n,n,n,255],i);}x.putImageData(data,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(18,18);return t;}
@@ -122,7 +127,7 @@ async function init(){
  function animate(time){frame=requestAnimationFrame(animate);if(document.hidden)return;const dt=Math.min((time-last)/1000,.1)||.016;last=time;const t=reduced?1:1-Math.exp(-5*dt);currentSize.lerp(targetSize,t);room.scale.copy(currentSize);
  const artHeight=Math.min(currentSize.y*.84,3.9);art.scale.set(artHeight*1000/1636,artHeight,1);art.position.set(0,artHeight/2+.06,-currentSize.z/2+.022);
  for(const s of speakers){s.object.position.lerp(s.position,t);scaleVector.setScalar(s.scale);s.object.scale.lerp(scaleVector,t);}
- speakers=speakers.filter(s=>{if(s.scale===0&&s.object.scale.x<.004){scene.remove(s.object);s.object.traverse(m=>{if(m.isMesh)m.material.dispose();});return false;}return true;});
+ speakers=speakers.filter(s=>{if(s.scale===0&&s.object.scale.x<.004){scene.remove(s.object);s.object.traverse(m=>{if(m.material)m.material.dispose();if(s.object.userData.dimensioned&&m.geometry)m.geometry.dispose();});return false;}return true;});
  if(state.view==='inside'){
   const subject=state.focus&&focusedSpeaker?.scale===1?focusedSpeaker:null;
   if(subject){const frame=speakerFrame(subject,camera.aspect,yaw,pitch);nextCam.copy(frame.position);nextLook.copy(frame.target);}

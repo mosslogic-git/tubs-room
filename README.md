@@ -24,7 +24,7 @@ Copy `dist/` into `/room-lab/` in the main website’s static assets and embed t
 Static module and asset resolution, JavaScript syntax, area/dimension clamping, configuration boundaries, product counts, and model bounds across room sizes/layouts are checked. Browser visual and interaction QA has not been run. The app remains a design prototype until that QA and acoustic calibration are complete.
 
 ## Netlify hosting
-Project: `tubs-room-lab` (site ID `dc2fa1cf-4b0a-47df-b0b2-0efab69f71fb`). `netlify.toml` publishes the existing `dist/` files without a build step.
+Project: `tubs-audio` (site ID `ba8cd0b5-bed7-42f1-8cf3-e12850322dbd`, URL: `https://tubs-audio.netlify.app`). `netlify.toml` publishes the existing `dist/` files without a build step.
 
 ## Simplified website interface
 The main view shows the product rail, About/Contact links, Explore button and a compact room-size slider. Explore contains keyboard-accessible Room, System and Info tabs. Camera modes, lighting, dimensions, presets and reset live under Room; appearances and bass layout under System; instructions and prototype notes under Info. Product descriptions appear only when a product is selected.

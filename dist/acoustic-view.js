@@ -1,24 +1,74 @@
 import * as THREE from 'three';
 import {configuration,placements} from './config.js';
 import {speakerSpecs} from './speaker-specs.js';
-import {speedOfSound,earlyPaths,treatmentPanels,sabine,roomModes,modalShape,sourceCoupling,distance} from './acoustic-physics.js';
+import {speedOfSound,earlyPaths,treatmentPanels,sabine,roomModes,modalShape,sourceCoupling,distance,calculatePointSPL,calculateSPLGrid,calculateIsolationAssemblies} from './acoustic-physics.js';
+import {createSoundIsolationEnvelope} from './sound-isolation.js';
 const TRAIL_POINTS=12,TRAIL_LENGTH=.65;
 const $=id=>document.getElementById(id),V=p=>new THREE.Vector3(...p);
 export function createAcousticView(scene,initial,reduced,actions){
- let room={...initial},enabled=false,clock=0,playing=!reduced,mode='rays',group=new THREE.Group(),rayData=[],particles=null,modeMesh=null,modeValues=null,modeFrequency=63,coupling=1,cycle=.3,pending=null;
+ let room={...initial},enabled=false,clock=0,playing=!reduced,mode='rays',group=new THREE.Group(),rayData=[],particles=null,modeMesh=null,modeValues=null,modeFrequency=63,coupling=1,cycle=.3,pending=null,splMesh=null;
  scene.add(group);group.visible=false;
  const o={frequency:1000,temperature:20,walls:.08,floor:.05,ceiling:.10,panelAlpha:.8,treated:false,lx:.5,lz:.65,ly:1.2,slow:40};
- const clear=()=>{group.traverse(m=>{m.geometry?.dispose();if(m.material){if(m.material.map)m.material.map.dispose();m.material.dispose();}});group.clear();rayData=[];particles=modeMesh=null;};
+ const clear=()=>{group.traverse(m=>{m.geometry?.dispose();if(m.material){if(m.material.map)m.material.map.dispose();m.material.dispose();}});group.clear();rayData=[];particles=modeMesh=splMesh=null;};
  function line(points,color,opacity=.7){const g=new THREE.BufferGeometry().setFromPoints(points.map(V));group.add(new THREE.Line(g,new THREE.LineBasicMaterial({color,transparent:true,opacity,depthTest:true})));}
  function listener(p){const ball=new THREE.Mesh(new THREE.SphereGeometry(.075,12,8),new THREE.MeshBasicMaterial({color:0xdea3cf}));ball.position.copy(V(p));group.add(ball);line([[p[0],.02,p[2]],p],0xdea3cf,.5);const ring=new THREE.Mesh(new THREE.RingGeometry(.17,.19,32),new THREE.MeshBasicMaterial({color:0xdea3cf,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(p[0],.015,p[2]);group.add(ring);}
  function allSources(){return placements(room).map(p=>({position:[p.x,p.y+p.height*.7,p.z+p.size[2]/2+.01],beam:speakerSpecs[p.productId].beam,productId:p.productId,role:p.role}));}
  function showSpecs(){const c=configuration(room.width*room.depth);$('ac-specs').innerHTML=c.products.map(p=>{const s=speakerSpecs[p.id];return `<p><b>${s.name}</b> · ${s.range[0]}–${s.range[1]} Hz<br>${s.dispersion}<br>${s.power}<br>${s.output}${s.dimensionNote?'<br>'+s.dimensionNote:''}<br><a href="${s.sheet}" target="_blank" rel="noopener">Manufacturer sheet ↗</a></p>`;}).join('');}
+ function splToColor(db,target){
+  const t=THREE.MathUtils.clamp((db-80)/(115-80),0,1);
+  if(t<0.3){const f=t/0.3;target.setRGB(0.05+0.06*f,0.12+0.24*f,0.24+0.23*f);}
+  else if(t<0.6){const f=(t-0.3)/0.3;target.setRGB(0.11+0.16*f,0.36+0.29*f,0.47+0.08*f);}
+  else if(t<0.8){const f=(t-0.6)/0.2;target.setRGB(0.27+0.67*f,0.65-0.20*f,0.55-0.30*f);}
+  else{const f=(t-0.8)/0.2;target.setRGB(0.94+0.03*f,0.45+0.42*f,0.25-0.12*f);}
+ }
+ function buildSPL(receiver){
+  const sources=allSources(),resX=40,resZ=50;
+  const grid=calculateSPLGrid(room,sources,resX,resZ,receiver[1]);
+  const geometry=new THREE.PlaneGeometry(room.width,room.depth,resX-1,resZ-1);
+  geometry.rotateX(-Math.PI/2);
+  const colors=new Float32Array(resX*resZ*3),tempColor=new THREE.Color();
+  for(let i=0;i<grid.values.length;i++){
+   splToColor(grid.values[i],tempColor);
+   colors[i*3]=tempColor.r;colors[i*3+1]=tempColor.g;colors[i*3+2]=tempColor.b;
+  }
+  geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  splMesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0.85,side:THREE.DoubleSide,depthWrite:false}));
+  splMesh.position.y=0.005;group.add(splMesh);
+  const listenerVal=calculatePointSPL(receiver,sources);
+  $('ac-spl-listener-val').textContent=listenerVal.toFixed(1)+' dB';
+  $('ac-spl-peak-val').textContent=grid.maxSPL.toFixed(1)+' dB';
+  $('ac-spl-pill').textContent='Listener: '+listenerVal.toFixed(1)+' dB';
+  $('ac-clock').textContent=`Direct SPL dancefloor coverage · ear height ${o.ly.toFixed(1)} m`;
+ }
+ function buildIsolation(){
+  const sources=allSources();
+  const isoSpecs=calculateIsolationAssemblies(room,sources,45);
+  const env=createSoundIsolationEnvelope(room,isoSpecs);
+  group.add(env);
+  $('ac-iso-req-tl').textContent=`${isoSpecs.reqTL} dB`;
+  $('ac-iso-peak-spl').textContent=`${isoSpecs.exposure.peakSPL.toFixed(1)} dB (${isoSpecs.exposure.boundaries[isoSpecs.exposure.peakBoundary].name})`;
+  $('ac-iso-floor-pucks').textContent=`${isoSpecs.floatingFloor.totalPucks} pads · ${isoSpecs.floatingFloor.floorResonanceHz} Hz f₀`;
+  $('ac-iso-wall-cavity').textContent=`${isoSpecs.walls.cavityDepthMm} mm · ${isoSpecs.walls.mineralWoolDensityKgM3} kg/m³`;
+  $('ac-iso-ceiling-springs').textContent=`${isoSpecs.ceiling.springCount} spring hangers · ${isoSpecs.ceiling.springResonanceHz} Hz`;
+  $('ac-iso-soundlock').textContent=`+${isoSpecs.soundLock.attenuationDb} dB attenuation (2 doors)`;
+  $('ac-clock').textContent=`Sound isolation envelope · Peak ${isoSpecs.exposure.peakSPL.toFixed(1)} dB → Target 45 dBA`;
+ }
  function rebuild(){
  clear();clock=0;showSpecs();const receiver=[(o.lx-.5)*room.width,Math.min(o.ly,room.height-.15),(o.lz-.5)*room.depth],c=speedOfSound(o.temperature);listener(receiver);
+ actions?.setIsolationMode?.(mode==='isolation');
  $('ac-speed').textContent=`Sound speed ${c.toFixed(1)} m/s. Animation at ${o.slow===1?'real time':o.slow+'× slower than real time'}.`;
- $('ac-ray-controls').hidden=mode==='modes';$('ac-mode-controls').hidden=mode!=='modes';document.querySelectorAll('#ac-legend>span').forEach((el,i)=>el.hidden=mode==='modes'||(i===1&&mode==='rays')||(i===2&&mode!=='treatment'));$('ac-mode-legend').hidden=mode!=='modes';
+ $('ac-ray-controls').hidden=mode==='modes'||mode==='spl'||mode==='isolation';
+ $('ac-mode-controls').hidden=mode!=='modes';
+ $('ac-spl-controls').hidden=mode!=='spl';
+ $('ac-isolation-controls').hidden=mode!=='isolation';
+ document.querySelectorAll('#ac-legend>span').forEach((el,i)=>el.hidden=mode==='modes'||mode==='spl'||mode==='isolation'||(i===1&&mode==='rays')||(i===2&&mode!=='treatment'));
+ $('ac-mode-legend').hidden=mode!=='modes';
+ $('ac-spl-legend').hidden=mode!=='spl';
+ $('ac-isolation-legend').hidden=mode!=='isolation';
  $('ac-treatment-wrap').hidden=mode!=='treatment';
  if(mode==='modes'){buildModes(receiver,c);group.visible=enabled;return;}
+ if(mode==='spl'){buildSPL(receiver);group.visible=enabled;return;}
+ if(mode==='isolation'){buildIsolation();group.visible=enabled;return;}
  const sources=allSources().filter(s=>{const spec=speakerSpecs[s.productId];return o.frequency>=spec.range[0]&&o.frequency<=spec.range[1];});
  const baseline=earlyPaths(room,sources,receiver,{...o,treated:false}),panels=treatmentPanels(room,baseline),paths=earlyPaths(room,sources,receiver,o,panels);
  $('ac-beam').textContent=sources.length?`${[...new Set(sources.map(s=>speakerSpecs[s.productId].name+' · '+speakerSpecs[s.productId].dispersion))].join('; ')}. Nominal beam approximation, not measured polar data.`:'No cabinet covers this band.';
@@ -27,12 +77,17 @@ export function createAcousticView(scene,initial,reduced,actions){
  const before=sabine(room,{...o,treated:false}),after=sabine(room,{...o,treated:true},panels);$('ac-rt').textContent=(o.treated?after:before).toFixed(2)+' s';
  $('ac-treatment-result').textContent=`${panels.length} non-overlapping 1.2 × 1.2 m panels at strongest available first-reflection points. Estimated decay: ${before.toFixed(2)} → ${after.toFixed(2)} s if applied. Reflections are receiver-specific; this is a treatment starting point.`;
  $('ac-reflections').innerHTML=panels.map((p,i)=>{const matching=paths.find(x=>x.source===p.path.source&&x.wall?.id===p.wall.id)||p.path;const db=10*Math.log10(Math.max(matching.energy,1e-12)/Math.max(directEnergy,1e-12));return `<li>${p.wall.name}<small>${(matching.distance/c*1000).toFixed(1)} ms · ${db.toFixed(1)} dB vs summed direct energy</small></li>`;}).join('');
- // Keep both sides of the system, with a bounded set of stable reflection paths.
  const visibleDirect=direct.slice().sort((a,b)=>b.energy-a.energy).slice(0,4);
- const selectedSources=new Set(visibleDirect.map(p=>p.source)),selectedPanels=[],walls=new Set();
- for(const panel of panels){
-  if(!selectedSources.has(panel.path.source)||walls.has(panel.wall.id))continue;
-  selectedPanels.push(panel);walls.add(panel.wall.id);if(selectedPanels.length===3)break;
+ const selectedPanels=[];
+ for(const side of [-1,1]){
+  const sidePanels=panels.filter(p=>(side<0?p.path.source.position[0]<0:p.path.source.position[0]>0));
+  const sideWalls=new Set();
+  for(const p of sidePanels){
+   if(sideWalls.has(p.wall.id))continue;
+   sideWalls.add(p.wall.id);
+   selectedPanels.push(p);
+   if(sideWalls.size>=2)break;
+  }
  }
  const visiblePaths=[...visibleDirect];
  if(mode!=='rays')for(const panel of selectedPanels){const p=paths.find(p=>p.source===panel.path.source&&p.wall?.id===panel.wall.id);if(p)visiblePaths.push(p);}
@@ -92,7 +147,7 @@ export function createAcousticView(scene,initial,reduced,actions){
  }
 
  }
- function show(on){enabled=on;group.visible=on;$('ac-legend').hidden=!on;$('sound-btn').setAttribute('aria-pressed',String(on));if(on)rebuild();}
+ function show(on){enabled=on;group.visible=on;$('ac-legend').hidden=!on;$('sound-btn').setAttribute('aria-pressed',String(on));if(!on)actions?.setIsolationMode?.(false);if(on)rebuild();}
  $('sound-btn').disabled=false;$('sound-btn').addEventListener('click',()=>{if(enabled){show(false);return;}show(true);actions.overview();actions.open();});
  $('tab-sound').addEventListener('click',()=>show(true));$('ac-hide').addEventListener('click',()=>show(false));$('ac-overview').addEventListener('click',actions.overview);
  $('ac-play').textContent=playing?'Pause':'Play';$('ac-play').setAttribute('aria-pressed',String(playing));$('ac-play').addEventListener('click',()=>{playing=!playing;$('ac-play').textContent=playing?'Pause':'Play';$('ac-play').setAttribute('aria-pressed',String(playing));});

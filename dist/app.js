@@ -1,19 +1,22 @@
-import {dimensionedCabinet} from './dimensioned-cabinet.js';
+import {dimensionedCabinet} from './dimensioned-cabinet.js?v=vstack80';
 import {speakerSpecs} from './speaker-specs.js';
 import * as THREE from 'three';
 import {OrbitControls} from './vendor/OrbitControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {MeshoptDecoder} from './vendor/meshopt_decoder.mjs';
 import {RoomEnvironment} from './vendor/RoomEnvironment.js';
-import {configuration,stages,placements,dimensionsForArea,monitorPlacements} from './config.js';
+import {configuration,stages,placements,dimensionsForArea,monitorPlacements} from './config.js?v=vstack80';
 import {speakerFrame,pickSpeaker,bindSpeakerSelection} from './speaker-focus.js';
 import {createRoomWalk,bindRoomWalk} from './camera-walk.js';
 import {createCameraZoom,bindCameraGestures} from './camera-zoom.js';
 import {createAcousticView} from './acoustic-view.js';
+import {createContactShadow} from './contact-shadows.js';
+import {createDJBooth} from './dj-booth.js';
+import {createHazeBeams} from './haze-beams.js';
 const $=id=>document.getElementById(id),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state={width:8,depth:10,height:3.5,model:'auto',cluster:false,view:'inside',focus:null,club:false};
 let scene,camera,renderer,controls,room,art,ceiling,back,sideWalls=[],strips=[],templates=[],speakers=[],frame,last=0,ready=false,currentStage='',drag=null,yaw=0,pitch=0;
-let ambient,key,rim,fill,wallMaterial,floorMaterial,artMaterial,acoustics;
+let ambient,key,rim,fill,wallMaterial,floorMaterial,artMaterial,acoustics,djBooth,hazeBeams;
 const targetSize=new THREE.Vector3(8,3.5,10),currentSize=targetSize.clone(),nextCam=new THREE.Vector3(),nextLook=new THREE.Vector3(),look=new THREE.Vector3(0,1,-4),scaleVector=new THREE.Vector3();
 const zoom=createCameraZoom({getCamera:()=>camera,slider:$('camera-zoom'),output:$('camera-zoom-out'),minus:$('zoom-out'),plus:$('zoom-in')});
 const walk=createRoomWalk();
@@ -63,20 +66,29 @@ function setView(view,retainFocus=false){
  state.view=view;walk.stop();drag=null;$('walk-controls').hidden=view!=='inside'||!ready;document.body.classList.toggle('inside-view',view==='inside');yaw=pitch=0;if(!retainFocus)clearFocus();
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-pressed',String(b.dataset.view===view));});
  $('look-hint').textContent=view==='inside'?'WASD or arrow keys to move. Drag to look around. Pinch or scroll to zoom.':'Drag to orbit. Pinch or scroll to zoom.';
- if(!camera||!ceiling)return;controls.enabled=view!=='inside';ceiling.visible=view==='inside';sideWalls.forEach(w=>{w.material.opacity=view==='inside'?1:.1;w.material.depthWrite=view==='inside';});back.material.opacity=view==='inside'?1:.22;back.material.depthWrite=view==='inside';
+ if(!camera||!ceiling)return;controls.enabled=view!=='inside';ceiling.visible=view==='inside';hazeBeams?.setVisible(view==='inside'||view==='overview');sideWalls.forEach(w=>{w.material.opacity=view==='inside'?1:.1;w.material.depthWrite=view==='inside';});back.material.opacity=view==='inside'?1:.22;back.material.depthWrite=view==='inside';
  if(view!=='inside'){const s=Math.max(state.width,state.depth),mobile=camera.aspect<.7?1.7:1.2;controls.target.set(0,.8,0);camera.fov=45;camera.position.set(view==='plan'?0:s*.9*mobile,s*(view==='plan'?1.7:1.05)*mobile,view==='plan'?.01:s*1.15*mobile);camera.lookAt(controls.target);camera.updateProjectionMatrix();controls.update();}
 }
 function createCabinet(item){
+ const wallHex=state.club?0x151d1a:0x434b3a,speakerColor=new THREE.Color(wallHex).multiplyScalar(0.8);
  if(state.model==='auto'||item.zone==='monitor'){
-  const shell=dimensionedCabinet(item.productId,item.size);scene.add(shell);shell.position.set(item.x,item.y,item.z);shell.scale.setScalar(reduced?1:.001);
+  const tilt = item.zone === 'monitor' ? (item.tilt ?? (item.role === 'top' ? 30 * Math.PI / 180 : 0)) : (item.tilt || 0);
+  const shell = dimensionedCabinet(item.productId, item.size, speakerColor, tilt);
+  if (item.y === 0) shell.add(createContactShadow(item.size[0], item.size[2]));
+  scene.add(shell);
+  shell.position.set(item.x, item.y, item.z);
+  shell.scale.setScalar(reduced ? 1 : .001);
   return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.zone||"main"}-${item.index}-${item.productId}-${state.model}`,role:item.role,productId:item.productId,size:[...item.size]};
  }
  const obj=new THREE.LOD();obj.addLevel(templates[item.index].high.clone(true),0);obj.addLevel(templates[item.index].low.clone(true),11,.15);if(item.role==='bass')obj.rotation.z=Math.PI/2;
  obj.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(obj),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
  obj.position.set(-center.x,-box.min.y,-center.z);
- obj.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.castShadow=true;m.receiveShadow=true;}});
+ obj.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.name='cabinet-shell';m.material.color.copy(speakerColor);m.castShadow=true;m.receiveShadow=true;}});
  const scaled=new THREE.Group();scaled.add(obj);scaled.scale.setScalar(Math.min(item.size[0]/size.x,item.size[1]/size.y,item.size[2]/size.z));
- const shell=new THREE.Group();shell.add(scaled);scene.add(shell);shell.scale.setScalar(reduced?1:.001);shell.position.set(item.x,item.y,item.z);
+ const shell=new THREE.Group();
+ const tilt = item.zone === 'monitor' ? (item.tilt ?? (item.role === 'top' ? 30 * Math.PI / 180 : 0)) : (item.tilt || 0);
+ if(tilt>0){const pY=0.085,pZ=item.size[2]/2-0.035,piv=new THREE.Group();piv.position.set(0,pY,pZ);scaled.position.set(0,-pY,-pZ);piv.rotation.x=tilt;piv.add(scaled);shell.add(piv);}else{shell.add(scaled);}
+ if(item.y===0)shell.add(createContactShadow(item.size[0],item.size[2]));scene.add(shell);shell.scale.setScalar(reduced?1:.001);shell.position.set(item.x,item.y,item.z);
  return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.zone||"main"}-${item.index}-${item.productId}-${state.model}`,role:item.role,productId:item.productId,size:[...item.size]};
 }
 function arrange(){
@@ -86,7 +98,19 @@ function arrange(){
 }
 function floorTexture(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),data=x.createImageData(128,128);let seed=38;for(let i=0;i<data.data.length;i+=4){seed=(seed*16807)%2147483647;const n=125+seed%18;data.data.set([n,n,n,255],i);}x.putImageData(data,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(18,18);return t;}
 function makePlane(material,x,y,z,rx=0,ry=0){const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),material);m.position.set(x,y,z);m.rotation.set(rx,ry,0);m.receiveShadow=true;room.add(m);return m;}
-function applyLighting(){if(!ambient||!artMaterial)return;const club=state.club;scene.background.set(club?0x070b0d:0x171d13);scene.fog.color.copy(scene.background);scene.fog.density=club?.032:.018;ambient.intensity=club?.9:2.25;key.intensity=club?3.3:4.4;key.color.set(club?0xa8df75:0xf2efd9);rim.intensity=club?5:2.5;rim.color.set(club?0x7ca8e7:0xb9d298);fill.intensity=club?1.2:2.4;floorMaterial.color.set(club?0x18201c:0x535747);wallMaterial.color.set(club?0x080c10:0x171c20);sideWalls.forEach(w=>w.material.color.set(club?0x151d1a:0x434b3a));ceiling.material.color.set(club?0x202b3b:0x465361);artMaterial.opacity=club?.65:.85;strips.forEach(s=>s.material.color.set(club?0x92b3d5:0xc5d8af));}
+let isolationActive=false;
+function setIsolationMode(active){
+ isolationActive=active;
+ if(!floorMaterial||!wallMaterial)return;
+ floorMaterial.transparent=true;
+ floorMaterial.opacity=active?0.18:1.0;
+ wallMaterial.transparent=true;
+ wallMaterial.opacity=active?0.16:1.0;
+ sideWalls.forEach(w=>{w.material.transparent=true;w.material.opacity=active?0.14:1.0;});
+ if(ceiling?.material){ceiling.material.transparent=true;ceiling.material.opacity=active?0.12:1.0;}
+ if(artMaterial){artMaterial.transparent=true;artMaterial.opacity=active?0.10:(state.club?0.65:0.85);}
+}
+function applyLighting(){if(!ambient||!artMaterial)return;const club=state.club;djBooth?.setClub(club);scene.background.set(club?0x070b0d:0x171d13);scene.fog.color.copy(scene.background);scene.fog.density=club?.032:.018;ambient.intensity=club?.9:2.25;key.intensity=club?3.3:4.4;key.color.set(club?0xa8df75:0xf2efd9);rim.intensity=club?5:2.5;rim.color.set(club?0x7ca8e7:0xb9d298);fill.intensity=club?1.2:2.4;floorMaterial.color.set(club?0x303b35:0xffffff);wallMaterial.color.set(club?0x080c10:0x171c20);const wallHex=club?0x151d1a:0x434b3a;sideWalls.forEach(w=>w.material.color.set(wallHex));const speakerColor=new THREE.Color(wallHex).multiplyScalar(0.8);speakers.forEach(s=>s.object.traverse(m=>{if(m.isMesh&&m.material?.name==='cabinet-shell')m.material.color.copy(speakerColor);}));ceiling.material.color.set(club?0x202b3b:0x465361);artMaterial.opacity=isolationActive?0.10:(club?.65:.85);strips.forEach(s=>s.material.color.set(club?0x92b3d5:0xc5d8af));if(isolationActive)setIsolationMode(true);}
 async function init(){
  try{
  scene=new THREE.Scene();scene.background=new THREE.Color(0x171d13);scene.fog=new THREE.FogExp2(0x171d13,.018);
@@ -111,7 +135,24 @@ async function init(){
  // Keep depth testing so foreground cabinets still occlude the artwork naturally.
  back.renderOrder=-2;sideWalls.forEach(w=>w.renderOrder=-2);art.renderOrder=-1;
  scene.add(art);
- const tex=await new THREE.TextureLoader().loadAsync('./assets/tubs-lady.webp');tex.colorSpace=THREE.SRGBColorSpace;artMaterial.map=tex;artMaterial.needsUpdate=true;
+ djBooth=createDJBooth();scene.add(djBooth.group);
+ const texLoader=new THREE.TextureLoader();
+ const [texLady,texFloorDiff,texFloorNorm,texFloorRough,texWallNorm,texWallRough]=await Promise.all([
+  texLoader.loadAsync('./assets/tubs-lady.webp'),
+  texLoader.loadAsync('./assets/floor-diffuse.png'),
+  texLoader.loadAsync('./assets/floor-normal.png'),
+  texLoader.loadAsync('./assets/floor-roughness.png'),
+  texLoader.loadAsync('./assets/wall-normal.png'),
+  texLoader.loadAsync('./assets/wall-roughness.png')
+ ]);
+ texLady.colorSpace=THREE.SRGBColorSpace;artMaterial.map=texLady;artMaterial.needsUpdate=true;
+ for(const t of [texFloorDiff,texFloorNorm,texFloorRough]){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(8,10);}
+ texFloorDiff.colorSpace=THREE.SRGBColorSpace;
+ floorMaterial.map=texFloorDiff;floorMaterial.normalMap=texFloorNorm;floorMaterial.normalScale.set(0.65,0.65);floorMaterial.roughnessMap=texFloorRough;floorMaterial.needsUpdate=true;
+ for(const t of [texWallNorm,texWallRough]){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(6,4);}
+ wallMaterial.normalMap=texWallNorm;wallMaterial.normalScale.set(0.35,0.35);wallMaterial.roughnessMap=texWallRough;wallMaterial.needsUpdate=true;
+ sideWalls.forEach(w=>{w.material.normalMap=texWallNorm;w.material.normalScale.set(0.35,0.35);w.material.roughnessMap=texWallRough;w.material.needsUpdate=true;});
+ hazeBeams=createHazeBeams();scene.add(hazeBeams.group);
  new ResizeObserver(()=>{const w=$('viewport').clientWidth,h=$('viewport').clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();if(state.view!=='inside')setView(state.view);}).observe($('viewport'));
  const vp=$('viewport');
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
@@ -125,6 +166,8 @@ async function init(){
 
  applyLighting();
  function animate(time){frame=requestAnimationFrame(animate);if(document.hidden)return;const dt=Math.min((time-last)/1000,.1)||.016;last=time;const t=reduced?1:1-Math.exp(-5*dt);currentSize.lerp(targetSize,t);room.scale.copy(currentSize);
+ djBooth.group.position.set(0,0,-currentSize.z/2+1.15);djBooth.group.visible=state.width>=4.2;if(djBooth.group.visible)djBooth.update(dt,state.club);
+ hazeBeams.update(currentSize,state.club,dt);
  const artHeight=Math.min(currentSize.y*.84,3.9);art.scale.set(artHeight*1000/1636,artHeight,1);art.position.set(0,artHeight/2+.06,-currentSize.z/2+.022);
  for(const s of speakers){s.object.position.lerp(s.position,t);scaleVector.setScalar(s.scale);s.object.scale.lerp(scaleVector,t);}
  speakers=speakers.filter(s=>{if(s.scale===0&&s.object.scale.x<.004){scene.remove(s.object);s.object.traverse(m=>{if(m.material)m.material.dispose();if(s.object.userData.dimensioned&&m.geometry)m.geometry.dispose();});return false;}return true;});
@@ -154,7 +197,7 @@ async function init(){
   $('loading').querySelector('p').textContent=`Preparing the system… ${++loaded}/4`;
   return {high,low};
  }));
- ready=true;acoustics=createAcousticView(scene,state,reduced,{open:()=>{toggleDetails(true);selectTab($('tab-sound'));},overview:()=>setView('overview')});$('loading').hidden=true;update();setView('inside');
+ ready=true;acoustics=createAcousticView(scene,state,reduced,{open:()=>{toggleDetails(true);selectTab($('tab-sound'));},overview:()=>setView('overview'),setIsolationMode:active=>setIsolationMode(active)});$('loading').hidden=true;update();setView('inside');
  }catch(error){console.error(error);$('loading').hidden=false;$('loading').querySelector('p').textContent='The 3D room could not load. Reload or try a WebGL-enabled browser. Room and product controls remain available.';}
 }
 update();init();

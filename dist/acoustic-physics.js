@@ -59,3 +59,101 @@ export function sabine(room,o,panels=[]){let A=surfaces(room).reduce((a,w)=>a+w.
 export function roomModes(room,temperature,maxFrequency=150){const c=speedOfSound(temperature),dims=[room.width,room.height,room.depth],modes=[];const limits=dims.map(d=>Math.floor(maxFrequency*2*d/c));for(let x=0;x<=limits[0];x++)for(let y=0;y<=limits[1];y++)for(let z=0;z<=limits[2];z++){if(x+y+z===0)continue;const n=[x,y,z],f=c/2*Math.hypot(...n.map((v,i)=>v/dims[i]));if(f>=20&&f<=maxFrequency)modes.push({n,f});}return modes.sort((a,b)=>a.f-b.f);}
 export function modalShape(room,n,p){const pos=[p[0]+room.width/2,p[1],p[2]+room.depth/2],dims=[room.width,room.height,room.depth];return n.reduce((a,v,i)=>a*Math.cos(Math.PI*v*pos[i]/dims[i]),1);}
 export function sourceCoupling(room,n,sources){if(!sources.length)return 0;return sources.reduce((s,p)=>s+modalShape(room,n,p.position),0)/sources.length;}
+
+const DEFAULT_REF_SPL={
+ 'dc12':122,
+ 'gc410':132,
+ 'obslk':104,
+ 'gc118-sub':130,
+ 'gc218':134
+};
+
+export function calculatePointSPL(point,sources){
+ if(!sources.length)return 0;
+ let totalEnergy=0;
+ for(const source of sources){
+  const delta=sub(point,source.position);
+  const d=Math.max(length(delta),0.4);
+  const gain=beamGain(delta,source.beam);
+  const baseSPL=DEFAULT_REF_SPL[source.productId]||115;
+  // Incoherent direct acoustic energy summation: E = 10^(SPL0/10) * gain / d^2
+  totalEnergy+=Math.pow(10,baseSPL/10)*gain/(d*d);
+ }
+ return 10*Math.log10(Math.max(totalEnergy,1e-6));
+}
+
+export function calculateSPLGrid(room,sources,resX=36,resZ=48,y=1.2){
+ const total=resX*resZ;
+ const values=new Float32Array(total);
+ let minSPL=Infinity,maxSPL=-Infinity;
+ for(let j=0;j<resZ;j++){
+  const z=(j/(resZ-1)-.5)*room.depth;
+  for(let i=0;i<resX;i++){
+   const x=(i/(resX-1)-.5)*room.width;
+   const spl=calculatePointSPL([x,y,z],sources);
+   const idx=j*resX+i;
+   values[idx]=spl;
+   if(spl<minSPL)minSPL=spl;
+   if(spl>maxSPL)maxSPL=spl;
+  }
+ }
+ return {values,resX,resZ,minSPL,maxSPL};
+}
+export function calculateBoundaryExposure(room,sources){
+ const boundaries=[
+  {id:'rear',name:'Stage rear wall',normal:[0,0,1],point:[0,room.height/2,-room.depth/2]},
+  {id:'front',name:'Entrance wall',normal:[0,0,-1],point:[0,room.height/2,room.depth/2]},
+  {id:'left',name:'Left sidewall',normal:[1,0,0],point:[-room.width/2,room.height/2,0]},
+  {id:'right',name:'Right sidewall',normal:[-1,0,0],point:[room.width/2,room.height/2,0]},
+  {id:'floor',name:'Floor slab',normal:[0,1,0],point:[0,0,0]},
+  {id:'ceiling',name:'Ceiling boundary',normal:[0,-1,0],point:[0,room.height,0]}
+ ];
+ const results={};let peakSPL=0,peakBoundary='floor';
+ for(const b of boundaries){
+  let maxSPLOnSurface=0;
+  const samples=[
+   b.point,
+   b.id==='rear'||b.id==='front'?[-room.width*.35,room.height*.3,b.point[2]]:b.id==='left'||b.id==='right'?[b.point[0],room.height*.3,-room.depth*.35]:[-room.width*.35,b.point[1],-room.depth*.35],
+   b.id==='rear'||b.id==='front'?[room.width*.35,room.height*.3,b.point[2]]:b.id==='left'||b.id==='right'?[b.point[0],room.height*.3,room.depth*.35]:[room.width*.35,b.point[1],room.depth*.35]
+  ];
+  for(const pt of samples){
+   let spl=calculatePointSPL(pt,sources);
+   if(b.id==='floor'||b.id==='rear')spl+=3.0;
+   if(spl>maxSPLOnSurface)maxSPLOnSurface=spl;
+  }
+  results[b.id]={id:b.id,name:b.name,spl:maxSPLOnSurface};
+  if(maxSPLOnSurface>peakSPL){peakSPL=maxSPLOnSurface;peakBoundary=b.id;}
+ }
+ return {boundaries:results,peakSPL,peakBoundary};
+}
+
+export function calculateIsolationAssemblies(room,sources,targetOutdoorSPL=45){
+ const exposure=calculateBoundaryExposure(room,sources);
+ const reqTL=Math.max(25,Math.round(exposure.peakSPL-targetOutdoorSPL));
+ const puckSpacing=0.5;
+ const pucksX=Math.max(3,Math.ceil(room.width/puckSpacing));
+ const pucksZ=Math.max(4,Math.ceil(room.depth/puckSpacing));
+ const totalPucks=pucksX*pucksZ;
+ const floorResonanceHz=8.5;
+ const wallCavityDepthMm=reqTL>60?150:100;
+ const wallResonanceHz=Math.round(1900/Math.sqrt(45*(wallCavityDepthMm/1000*1000)));
+ const clipSpacingMm=600;
+ const springGridSpacing=1.2;
+ const springCount=Math.max(4,Math.ceil(room.width/springGridSpacing)*Math.ceil(room.depth/springGridSpacing));
+ const ceilingCavityDepthMm=200;
+ const springResonanceHz=6.2;
+ const cornerDepth=Math.min(0.65,room.width*0.08+0.3);
+ const soundLockDepth=1.8;
+ const soundLockWidth=Math.min(2.4,room.width*0.4);
+ const airlockAttenuationDb=26;
+ return {
+  exposure,
+  reqTL,
+  targetOutdoorSPL,
+  floatingFloor:{puckSpacing,pucksX,pucksZ,totalPucks,floorResonanceHz,slabThicknessMm:100,elastomerType:'Sylomer SR-110'},
+  walls:{cavityDepthMm:wallCavityDepthMm,resonanceHz:wallResonanceHz,clipSpacingMm,gypsumLayers:2,mineralWoolDensityKgM3:45},
+  ceiling:{springCount,gridSpacing:springGridSpacing,cavityDepthMm:ceilingCavityDepthMm,springResonanceHz},
+  cornerTraps:{count:4,depth:cornerDepth},
+  soundLock:{width:soundLockWidth,depth:soundLockDepth,attenuationDb:airlockAttenuationDb}
+ };
+}

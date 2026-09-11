@@ -14,7 +14,12 @@ export function placements(state){
  const topId=isKnownTop?state.model:defaultTopId;
  const bassId=c.products.find(p=>p.role==='bass')?.id;
  const ts=speakerSpecs[topId].size,bs=bassId?speakerSpecs[bassId].size:[0,0,0],model=state.model==='auto'?c.model:(Number.isFinite(+state.model)?Number(state.model):c.model),items=[],n=c.subs/2,gap=.035;
- const cols=n>2?2:1,stackWidth=n?cols*bs[0]+(cols-1)*gap:ts[0],spread=Math.min(4.8,state.width/2-stackWidth/2-.3),z=-state.depth/2+Math.min(2.8,state.depth*.44);
+ const isStudio = (state.width * state.depth <= 45) || (c.id === 'hifi');
+ const cols=n>2?2:1,stackWidth=n?cols*bs[0]+(cols-1)*gap:ts[0];
+ const defaultSpread=Math.min(4.8,state.width/2-stackWidth/2-.3);
+ const studioSpread=Math.min(1.75,state.width/2-ts[0]/2-.25);
+ const spread=isStudio?studioSpread:defaultSpread;
+ const z=isStudio?(-state.depth/2+0.4):(-state.depth/2+Math.min(2.8,state.depth*.44));
  for(const side of [-1,1]){
   for(let i=0;i<n;i++){
    let x=side*spread+(cols>1?(i%2-.5)*(bs[0]+gap):0),y=Math.floor(i/cols)*bs[1],zz=z;
@@ -22,7 +27,9 @@ export function placements(state){
    items.push({index:3,role:'bass',productId:bassId,x,y,z:zz,height:bs[1],size:bs});
   }
   const topZ = z;
-  for(let i=0;i<c.tops/2;i++)items.push({index:model,role:'top',productId:topId,x:side*spread+(cols>1?(i-(c.tops/2-1)/2)*(bs[0]+gap):0),y:state.cluster?0:Math.ceil(n/cols)*bs[1],z:topZ,height:ts[1],size:ts,tilt:0});
+  const topY = isStudio ? 0.965 : (state.cluster?0:Math.ceil(n/cols)*bs[1]);
+  const rotation = isStudio ? (-side * 0.32) : 0;
+  for(let i=0;i<c.tops/2;i++)items.push({index:model,role:'top',productId:topId,x:side*spread+(cols>1?(i-(c.tops/2-1)/2)*(bs[0]+gap):0),y:topY,z:topZ,height:ts[1],size:ts,tilt:0,rotation});
  }
  return items;
 }

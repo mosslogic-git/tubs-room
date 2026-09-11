@@ -3,7 +3,7 @@ import * as THREE from './vendor/three.module.js';
 // Dimensioned visual representations refined from Blender production models.
 // Built at metre scale with exact Tub's satin green (20% darker than side walls),
 // recessed front baffle, realistic driver cones, dispersion horns, and reflex ports.
-export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
+export function dimensionedCabinet(id, size, color = 0x111315, tilt = 0) {
   const [w, h, d] = size, group = new THREE.Group();
   const bodyGroup = new THREE.Group();
   const shell = new THREE.MeshStandardMaterial({color, roughness: 0.78});

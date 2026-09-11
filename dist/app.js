@@ -12,12 +12,13 @@ import {createCameraZoom,bindCameraGestures} from './camera-zoom.js';
 import {createAcousticView} from './acoustic-view.js';
 import {createContactShadow} from './contact-shadows.js';
 import {createDJBooth} from './dj-booth.js';
+import {createStudioSuite} from './studio-suite.js';
 import {createHazeBeams} from './haze-beams.js';
 import {createMossCanvas} from './moss-canvas.js';
 const $=id=>document.getElementById(id),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state={width:8,depth:10,height:3.5,model:'auto',cluster:false,view:'inside',focus:null,club:false};
 let scene,camera,renderer,controls,room,art,ceiling,back,sideWalls=[],strips=[],templates=[],speakers=[],frame,last=0,ready=false,currentStage='',drag=null,yaw=0,pitch=0;
-let ambient,key,rim,fill,wallMaterial,floorMaterial,artMaterial,acoustics,djBooth,hazeBeams,mossSim,mossTexture;
+let ambient,key,rim,fill,wallMaterial,backWallMaterial,floorMaterial,artMaterial,acoustics,djBooth,studioSuite,hazeBeams,mossSim,mossTexture;
 const targetSize=new THREE.Vector3(8,3.5,10),currentSize=targetSize.clone(),nextCam=new THREE.Vector3(),nextLook=new THREE.Vector3(),look=new THREE.Vector3(0,1,-4),scaleVector=new THREE.Vector3();
 const zoom=createCameraZoom({getCamera:()=>camera,slider:$('camera-zoom'),output:$('camera-zoom-out'),minus:$('zoom-out'),plus:$('zoom-in')});
 const walk=createRoomWalk();
@@ -91,7 +92,7 @@ function setView(view,retainFocus=false){
  if(view!=='inside'){const s=Math.max(state.width,state.depth),mobile=camera.aspect<.7?1.7:1.2;controls.target.set(0,.8,0);camera.fov=45;camera.position.set(view==='plan'?0:s*.9*mobile,s*(view==='plan'?1.7:1.05)*mobile,view==='plan'?.01:s*1.15*mobile);camera.lookAt(controls.target);camera.updateProjectionMatrix();controls.update();}
 }
 function createCabinet(item){
- const wallHex=state.club?0x151d1a:0x434b3a,speakerColor=new THREE.Color(wallHex).multiplyScalar(0.8);
+ const speakerColor=new THREE.Color(0x111315);
  if(state.model==='auto'||Boolean(speakerSpecs[state.model])||item.zone==='monitor'){
   const tilt = item.tilt || 0;
   const shell = dimensionedCabinet(item.productId, item.size, speakerColor, tilt);
@@ -127,11 +128,12 @@ function setIsolationMode(active){
  floorMaterial.opacity=active?0.18:1.0;
  wallMaterial.transparent=true;
  wallMaterial.opacity=active?0.16:1.0;
+ if(backWallMaterial){backWallMaterial.transparent=true;backWallMaterial.opacity=active?0.16:1.0;}
  sideWalls.forEach(w=>{w.material.transparent=true;w.material.opacity=active?0.14:1.0;});
  if(ceiling?.material){ceiling.material.transparent=true;ceiling.material.opacity=active?0.12:1.0;}
  if(artMaterial){artMaterial.transparent=true;artMaterial.opacity=active?0.10:(state.club?0.80:0.95);}
 }
-function applyLighting(){if(!ambient||!artMaterial)return;const club=state.club;djBooth?.setClub(club);scene.background.set(club?0x070b0d:0x121518);scene.fog.color.copy(scene.background);scene.fog.density=club?.032:.018;ambient.intensity=club?.9:2.2;key.intensity=club?3.3:4.4;key.color.set(club?0xa8df75:0xf0f3f6);rim.intensity=club?5:2.5;rim.color.set(club?0x7ca8e7:0x8fa2b5);fill.intensity=club?1.2:2.4;floorMaterial.color.set(club?0x252a2f:0xffffff);wallMaterial.color.set(club?0x080a0c:0x14171a);const wallHex=club?0x0c0f12:0x1a1d21;sideWalls.forEach(w=>w.material.color.set(wallHex));const speakerColor=new THREE.Color(wallHex).multiplyScalar(0.75);speakers.forEach(s=>s.object.traverse(m=>{if(m.isMesh&&m.material?.name==='cabinet-shell')m.material.color.copy(speakerColor);}));ceiling.material.color.set(club?0x14181c:0x22272e);artMaterial.opacity=isolationActive?0.10:(club?.80:.95);strips.forEach(s=>s.material.color.set(club?0x475569:0x64748b));if(isolationActive)setIsolationMode(true);}
+function applyLighting(){if(!ambient||!artMaterial)return;const club=state.club;djBooth?.setClub(club);studioSuite?.setClub(club);scene.background.set(club?0x070b0d:0x121518);scene.fog.color.copy(scene.background);scene.fog.density=club?.032:.018;ambient.intensity=club?.9:2.2;key.intensity=club?3.3:4.4;key.color.set(club?0xa8df75:0xf0f3f6);rim.intensity=club?5:2.5;rim.color.set(club?0x7ca8e7:0x8fa2b5);fill.intensity=club?1.2:2.4;floorMaterial.color.set(club?0x252a2f:0xffffff);wallMaterial.color.set(club?0x080a0c:0x14171a);if(backWallMaterial)backWallMaterial.color.set(club?0x020304:0x07080a);const wallHex=club?0x0c0f12:0x1a1d21;sideWalls.forEach(w=>w.material.color.set(wallHex));const speakerColor=new THREE.Color(0x111315);speakers.forEach(s=>s.object.traverse(m=>{if(m.isMesh&&m.material?.name==='cabinet-shell')m.material.color.copy(speakerColor);}));ceiling.material.color.set(club?0x14181c:0x22272e);artMaterial.opacity=isolationActive?0.10:(club?.80:.95);strips.forEach(s=>s.material.color.set(club?0x475569:0x64748b));if(isolationActive)setIsolationMode(true);}
 async function init(){
  try{
  scene=new THREE.Scene();scene.background=new THREE.Color(0x121518);scene.fog=new THREE.FogExp2(0x121518,.018);
@@ -142,7 +144,9 @@ async function init(){
  ambient=new THREE.HemisphereLight(0xdbe2ea,0x1a1d21,2.2);scene.add(ambient);key=new THREE.DirectionalLight(0xf0f3f6,4.4);key.position.set(-3,7,4);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-13,right:13,top:12,bottom:-12,near:.1,far:45});key.shadow.bias=-.0006;key.shadow.normalBias=.02;scene.add(key);
  rim=new THREE.DirectionalLight(0x8fa2b5,2.5);rim.position.set(5,3,-8);scene.add(rim);fill=new THREE.DirectionalLight(0xd3e3f0,2.4);fill.position.set(0,3,7);scene.add(fill);
  room=new THREE.Group();scene.add(room);floorMaterial=new THREE.MeshStandardMaterial({color:0x3a3f45,roughness:.8,map:floorTexture()});makePlane(floorMaterial,0,0,0,-Math.PI/2);
- wallMaterial=new THREE.MeshStandardMaterial({color:0x14171a,roughness:1,side:THREE.DoubleSide,transparent:true});back=makePlane(wallMaterial,0,.5,-.5);
+ wallMaterial=new THREE.MeshStandardMaterial({color:0x14171a,roughness:1,side:THREE.DoubleSide,transparent:true});
+ backWallMaterial=new THREE.MeshStandardMaterial({color:0x07080a,roughness:1,side:THREE.DoubleSide,transparent:true});
+ back=makePlane(backWallMaterial,0,.5,-.5);
  sideWalls=[makePlane(wallMaterial.clone(),-.5,.5,0,0,Math.PI/2),makePlane(wallMaterial.clone(),.5,.5,0,0,-Math.PI/2),makePlane(wallMaterial.clone(),0,.5,.5,0,Math.PI)];
  ceiling=makePlane(new THREE.MeshStandardMaterial({color:0x22272e,roughness:1,side:THREE.DoubleSide}),0,1,0,Math.PI/2);
  // Architectural floor joints and wall ribs, scaled with the room envelope.
@@ -162,6 +166,7 @@ async function init(){
  artMaterial.map=mossTexture;
  artMaterial.needsUpdate=true;
  djBooth=createDJBooth();scene.add(djBooth.group);
+ studioSuite=createStudioSuite();scene.add(studioSuite.group);
  const texLoader=new THREE.TextureLoader();
  const [texFloorDiff,texFloorNorm,texFloorRough,texWallNorm,texWallRough]=await Promise.all([
   texLoader.loadAsync('./assets/floor-diffuse.png'),
@@ -190,8 +195,19 @@ async function init(){
 
  applyLighting();
  function animate(time){frame=requestAnimationFrame(animate);if(document.hidden)return;const dt=Math.min((time-last)/1000,.1)||.016;last=time;const t=reduced?1:1-Math.exp(-5*dt);currentSize.lerp(targetSize,t);room.scale.copy(currentSize);
- djBooth.group.position.set(0,0,-currentSize.z/2+1.15);djBooth.group.visible=state.width>=4.2;if(djBooth.group.visible)djBooth.update(dt,state.club);
- hazeBeams.update(currentSize,state.club,dt);
+  const area=currentSize.x*currentSize.z,isStudio=(area<=45)||(configuration(area).id==='hifi');
+  if(isStudio){
+   djBooth.group.visible=false;
+   studioSuite.setVisible(true);
+   studioSuite.group.position.set(0,0,-currentSize.z/2+1.85);
+   studioSuite.update(dt,(time||0)*.001,.75);
+  }else{
+   studioSuite.setVisible(false);
+   djBooth.group.position.set(0,0,-currentSize.z/2+1.15);
+   djBooth.group.visible=state.width>=4.2;
+   if(djBooth.group.visible)djBooth.update(dt,state.club);
+  }
+  hazeBeams.update(currentSize,state.club,dt);
  if(mossSim){mossSim.update(dt);mossTexture.needsUpdate=true;}
  const artHeight=Math.min(currentSize.y*.84,3.9);art.scale.set(artHeight*760/620,artHeight,1);art.position.set(0,artHeight/2+.06,-currentSize.z/2+.022);
  for(const s of speakers){s.object.position.lerp(s.position,t);scaleVector.setScalar(s.scale);s.object.scale.lerp(scaleVector,t);}

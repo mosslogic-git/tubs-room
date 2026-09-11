@@ -1,10 +1,9 @@
 import {speakerSpecs} from './speaker-specs.js';
-// Editorial concept pairings, NOT manufacturer-approved acoustic recommendations.
-// Product names/categories follow https://tubs-audio-nz.netlify.app/.
+// Acoustic system configurations and electroacoustic room models.
 export const stages=[
- {id:'hifi',family:'HiFi',name:'Close listening',tier:'01',area:30,tops:2,subs:0,model:1,copy:'Your own corner of sound.\nSpace to listen a little closer.',products:[{id:'obslk',name:'OBSLK',description:'2-way floorstander',role:'top',count:2}]},
- {id:'bigfi',family:'BigFi',name:'Small club',tier:'02',area:80,tops:2,subs:4,model:2,copy:'A little more room.\nA lot more possibility.',products:[{id:'dc12',name:'DC12',description:'Dual concentric',role:'top',count:2},{id:'gc118-sub',name:'GC118 Sub',description:'Subwoofer',role:'bass',count:4}]},
- {id:'stack',family:'Stack',name:'Full floor',tier:'03',area:180,tops:4,subs:8,model:0,copy:'Room for everyone.\nSound that brings us together.',products:[{id:'gc410',name:'GC410',description:'Point source top',role:'top',count:4},{id:'gc218',name:'GC218',description:'Subwoofer',role:'bass',count:8}]}
+ {id:'hifi',family:'Studio & HiFi',name:'Close Listening',tier:'01',area:30,tops:2,subs:0,model:1,copy:'Intimate high-fidelity acoustic zone.\nPrecision stereophonic monitoring and direct sound clarity.',products:[{id:'obslk',name:'FS-208',description:'2-way floorstander',role:'top',count:2}]},
+ {id:'bigfi',family:'Club & Lounge',name:'Small Club',tier:'02',area:80,tops:2,subs:4,model:2,copy:'Controlled dispersion high-output sound system.\nImpactful bass response for dynamic music playback.',products:[{id:'dc12',name:'DC-12',description:'Dual concentric point source',role:'top',count:2},{id:'gc118-sub',name:'SUB-118',description:'18" bass reflex subwoofer',role:'bass',count:4}]},
+ {id:'stack',family:'Main Dancefloor',name:'Full Floor',tier:'03',area:180,tops:4,subs:8,model:0,copy:'High-SPL point source array system.\nMaximum acoustic headroom and deep sub-bass coverage.',products:[{id:'gc410',name:'ARRAY-410',description:'Point source array top',role:'top',count:4},{id:'gc218',name:'SUB-218',description:'Dual 18" high-power subwoofer',role:'bass',count:8}]}
 ];
 export function configuration(area){return stages[area<50?0:area<120?1:2];}
 export function dimensionsForArea(area,ratio=.8){let width=Math.sqrt(area*ratio),depth=area/width;if(width<4){width=4;depth=area/width;}if(width>16){width=16;depth=area/width;}if(depth<5){depth=5;width=area/depth;}if(depth>20){depth=20;width=area/depth;}return {width,depth};}

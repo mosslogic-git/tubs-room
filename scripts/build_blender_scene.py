@@ -289,8 +289,8 @@ def main():
         'led_cyan': create_pbr_material('Mat_LED_Cyan', (0.1, 0.8, 0.9, 1.0), emission=(0.1, 0.8, 0.9, 1.0), emission_strength=6.0),
     }
     
-    lady_tex = ASSETS / 'tubs-lady.webp'
-    materials['art'] = create_textured_material('Mat_TubsLadyArtwork', diffuse_path=lady_tex, roughness_val=0.85, uv_scale=(1.0, 1.0))
+    lady_tex = ASSETS / 'acoustic-art.webp'
+    materials['art'] = create_textured_material('Mat_AcousticArtwork', diffuse_path=lady_tex, roughness_val=0.85, uv_scale=(1.0, 1.0))
     
     # Architecture
     col_arch = create_collection("Architecture")
@@ -312,12 +312,12 @@ def main():
     
     art_h = min(room_h * 0.84, 3.9)
     art_w = art_h * 1000.0 / 1636.0
-    add_box("Artwork_Tubs_Lady", (art_w, 0.005, art_h), (0, -room_d/2 + 0.01, art_h/2 + 0.06), col_arch, materials['art'], bevel=0)
+    add_box("Artwork_Acoustic_Panel", (art_w, 0.005, art_h), (0, -room_d/2 + 0.01, art_h/2 + 0.06), col_arch, materials['art'], bevel=0)
     
     for sx in [-room_w * 0.42, room_w * 0.42]:
         add_box(f"Ceiling_Strip_{sx}", (0.025, room_d * 0.84, 0.015), (sx, 0, room_h - 0.01), col_arch, materials['strip_light'], bevel=0)
     
-    # Sound System (Tub's Audio Speakers with 30-degree tilted tops)
+    # Sound System (Loudspeaker array with 30-degree tilted tops)
     col_sound = create_collection("Sound_System")
     top_tilt = -math.radians(30)
     

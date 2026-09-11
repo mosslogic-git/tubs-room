@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 54 54" width="54" height="54" fill="none">
+  <!-- Speaker cabinet base -->
+  <rect x="6" y="8" width="22" height="38" rx="4" fill="#141c11" stroke="#8cc271" stroke-width="2.5" />
+  <!-- High frequency concentric tweeter -->
+  <circle cx="17" cy="19" r="4.5" fill="#1e2d19" stroke="#8cc271" stroke-width="2" />
+  <circle cx="17" cy="19" r="1.8" fill="#8cc271" />
+  <!-- Low frequency driver -->
+  <circle cx="17" cy="34" r="6.5" fill="#1e2d19" stroke="#8cc271" stroke-width="2" />
+  <circle cx="17" cy="34" r="2.8" fill="#8cc271" />
+  <!-- Bass reflex port -->
+  <circle cx="17" cy="42" r="1.5" fill="#8cc271" />
+  <!-- Acoustic dispersion wavefront arcs -->
+  <path d="M34 19 A 9 9 0 0 1 34 35" stroke="#8cc271" stroke-width="2.2" stroke-linecap="round" />
+  <path d="M40 14 A 16 16 0 0 1 40 40" stroke="#8cc271" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.8" />
+  <path d="M46 9 A 24 24 0 0 1 46 45" stroke="#8cc271" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.5" />
+</svg>

@@ -51,13 +51,17 @@ const tabs=[...document.querySelectorAll('[data-tab]')];
 function selectTab(tab){tabs.forEach(t=>{const active=t===tab;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1;$('panel-'+t.dataset.tab).hidden=!active;});}
 tabs.forEach((tab,i)=>{tab.addEventListener('click',()=>selectTab(tab));tab.addEventListener('keydown',e=>{let n;if(e.key==='ArrowRight')n=(i+1)%tabs.length;else if(e.key==='ArrowLeft')n=(i+tabs.length-1)%tabs.length;else if(e.key==='Home')n=0;else if(e.key==='End')n=tabs.length-1;else return;e.preventDefault();selectTab(tabs[n]);tabs[n].focus();});});
 $('details-btn').addEventListener('click',()=>toggleDetails($('details').hidden));$('close-details').addEventListener('click',()=>toggleDetails(false));
+$('rail-sound-link')?.addEventListener('click',e=>{e.preventDefault();toggleDetails(true);selectTab($('tab-sound'));});
+$('system-acoustics-link')?.addEventListener('click',e=>{e.preventDefault();selectTab($('tab-sound'));});
+$('nav-system-btn')?.addEventListener('click',()=>{toggleDetails(true);selectTab($('tab-system'));});
+$('nav-guide-btn')?.addEventListener('click',()=>{toggleDetails(true);selectTab($('tab-info'));});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('details').hidden)toggleDetails(false);else clearFocus();}});
 $('reset').addEventListener('click',()=>{zoom.reset();walk.reset({width:8,depth:10});Object.assign(state,{width:8,depth:10,height:3.5,model:'auto',cluster:false});$('model').value='auto';$('layout').checked=false;update();setView('inside');});
 $('reset-view').addEventListener('click',()=>{zoom.reset();walk.reset(state);clearFocus();setView('inside');});document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 $('lighting').addEventListener('click',()=>{state.club=!state.club;document.body.classList.toggle('club',state.club);$('lighting').setAttribute('aria-pressed',state.club);applyLighting();});
 $('unfocus').addEventListener('click',clearFocus);
 function clearFocus(){state.focus=null;focusedSpeaker=null;$('focus-info').hidden=true;document.body.classList.remove('focused');syncNavigation(configuration(state.width*state.depth));yaw=pitch=0;}
-function focusProduct(product,speaker=null){if(!ready)return;if(!$('details').hidden)toggleDetails(false);focusedSpeaker=speaker||speakers.find(s=>s.productId===product.id&&s.scale===1);if(!focusedSpeaker)return;state.focus=product.id;zoom.reset();setView('inside',true);$('focus-info').hidden=false;$('focus-title').textContent=product.name;$('focus-desc').textContent='Drag to inspect. Pinch or scroll for a closer look.';$('product-link').href=`https://tubs-audio-nz.netlify.app/products/${product.id}`;document.body.classList.add('focused');syncNavigation(configuration(state.width*state.depth));}
+function focusProduct(product,speaker=null){if(!ready)return;if(!$('details').hidden)toggleDetails(false);focusedSpeaker=speaker||speakers.find(s=>s.productId===product.id&&s.scale===1);if(!focusedSpeaker)return;state.focus=product.id;zoom.reset();setView('inside',true);$('focus-info').hidden=false;$('focus-title').textContent=product.name;$('focus-desc').textContent='Drag to inspect. Pinch or scroll for a closer look.';$('product-link').textContent='Acoustic Specifications ↗';$('product-link').onclick=(e)=>{e.preventDefault();toggleDetails(true);selectTab($('tab-system'));};document.body.classList.add('focused');syncNavigation(configuration(state.width*state.depth));}
 $('inspect-in').addEventListener('click',()=>zoom.set(zoom.value*1.2));
 $('inspect-out').addEventListener('click',()=>zoom.set(zoom.value/1.2));
 $('inspect-fit').addEventListener('click',()=>{zoom.reset();yaw=pitch=0;});
@@ -137,15 +141,15 @@ async function init(){
  scene.add(art);
  djBooth=createDJBooth();scene.add(djBooth.group);
  const texLoader=new THREE.TextureLoader();
- const [texLady,texFloorDiff,texFloorNorm,texFloorRough,texWallNorm,texWallRough]=await Promise.all([
-  texLoader.loadAsync('./assets/tubs-lady.webp'),
+ const [texArt,texFloorDiff,texFloorNorm,texFloorRough,texWallNorm,texWallRough]=await Promise.all([
+  texLoader.loadAsync('./assets/acoustic-art.webp'),
   texLoader.loadAsync('./assets/floor-diffuse.png'),
   texLoader.loadAsync('./assets/floor-normal.png'),
   texLoader.loadAsync('./assets/floor-roughness.png'),
   texLoader.loadAsync('./assets/wall-normal.png'),
   texLoader.loadAsync('./assets/wall-roughness.png')
  ]);
- texLady.colorSpace=THREE.SRGBColorSpace;artMaterial.map=texLady;artMaterial.needsUpdate=true;
+ texArt.colorSpace=THREE.SRGBColorSpace;artMaterial.map=texArt;artMaterial.needsUpdate=true;
  for(const t of [texFloorDiff,texFloorNorm,texFloorRough]){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(8,10);}
  texFloorDiff.colorSpace=THREE.SRGBColorSpace;
  floorMaterial.map=texFloorDiff;floorMaterial.normalMap=texFloorNorm;floorMaterial.normalScale.set(0.65,0.65);floorMaterial.roughnessMap=texFloorRough;floorMaterial.needsUpdate=true;

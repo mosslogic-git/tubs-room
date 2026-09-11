@@ -114,43 +114,51 @@ export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
     }
   }
 
-  // 30-degree forward/bottom tilt & side mounting brackets (for DJ booth monitors)
+  // Upward tilt & industrial side mounting brackets (for DJ booth monitors aiming at DJ head)
   const tiltAngle = tilt > 0 ? tilt : 0;
 
   if (tiltAngle > 0) {
     const pivotY = 0.02;
-    const pivotZ = -d / 2 + 0.04;
+    const pivotZ = -d / 2 + 0.05;
+
+    // Side chassis reinforcement plates on speaker body
+    for (const sx of [-1, 1]) {
+      const cabPlate = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.045, 0.16), steel);
+      cabPlate.position.set(sx * (w / 2 + 0.0015), 0.07, 0.02);
+      cabPlate.castShadow = true;
+      bodyGroup.add(cabPlate);
+    }
 
     const pivotGroup = new THREE.Group();
     pivotGroup.position.set(0, pivotY, pivotZ);
     bodyGroup.position.set(0, -pivotY, -pivotZ);
-    // Negative rotation around X pitches the front face (+Z) UPWARDS towards the DJ/listener
+    // Negative rotation around X pitches the front face (+Z) UPWARDS towards the DJ's head
     pivotGroup.rotation.x = -tiltAngle;
     pivotGroup.add(bodyGroup);
     group.add(pivotGroup);
 
-    // Industrial Steel Side Mounting Tilt Brackets
+    // Industrial Steel Side Mounting Tilt Brackets bolted to sub top
     const bracketThick = 0.008;
     for (const sx of [-1, 1]) {
-      const bx = sx * (w / 2 + bracketThick / 2 + 0.002);
+      const bx = sx * (w / 2 + bracketThick / 2 + 0.003);
 
-      // Base bracket plate bolted to sub top
-      const basePlate = new THREE.Mesh(new THREE.BoxGeometry(bracketThick, 0.035, 0.18), steel);
-      basePlate.position.set(bx, 0.017, pivotZ - 0.045);
+      // Base bracket runner plate bolted securely to subwoofer top
+      const basePlate = new THREE.Mesh(new THREE.BoxGeometry(bracketThick, 0.035, 0.28), steel);
+      basePlate.position.set(bx, 0.017, pivotZ + 0.06);
       basePlate.castShadow = true;
       group.add(basePlate);
 
-      // Sub mounting bolts
-      for (const bz of [pivotZ - 0.11, pivotZ + 0.02]) {
+      // Subwoofer mounting anchor bolts
+      for (const bz of [pivotZ - 0.05, pivotZ + 0.07, pivotZ + 0.16]) {
         const b = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, bracketThick + 0.004, 8), metal);
         b.rotation.z = Math.PI / 2;
         b.position.set(bx, 0.022, bz);
         group.add(b);
       }
 
-      // Upright hinge bracket arm connecting base plate to pivot point
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(bracketThick, pivotY + 0.02, 0.045), steel);
-      arm.position.set(bx, (pivotY + 0.02) / 2, pivotZ);
+      // Upright hinge bracket ear connecting base plate to rear pivot point
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(bracketThick, pivotY + 0.025, 0.045), steel);
+      arm.position.set(bx, (pivotY + 0.025) / 2, pivotZ);
       arm.castShadow = true;
       group.add(arm);
 
@@ -160,17 +168,17 @@ export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
       pivotPin.position.set(bx, pivotY, pivotZ);
       group.add(pivotPin);
 
-      // Diagonal angle locking strut
-      const strut = new THREE.Mesh(new THREE.BoxGeometry(bracketThick * 0.8, 0.022, 0.16), steel);
-      strut.position.set(bx, pivotY + 0.05, pivotZ - 0.075);
-      strut.rotation.x = 28 * Math.PI / 180;
+      // Heavy-duty diagonal angle locking strut holding the front baffle lifted
+      const strut = new THREE.Mesh(new THREE.BoxGeometry(bracketThick * 0.85, 0.022, 0.155), steel);
+      strut.position.set(bx, 0.087, 0.033);
+      strut.rotation.x = -61.5 * Math.PI / 180;
       strut.castShadow = true;
       group.add(strut);
 
-      // Angle clamp knob / lock bolt
-      const lockBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, bracketThick + 0.014, 12), metal);
+      // Angle clamp knob / lock bolt clamping strut to cabinet side chassis plate
+      const lockBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.0075, 0.0075, bracketThick + 0.014, 12), metal);
       lockBolt.rotation.z = Math.PI / 2;
-      lockBolt.position.set(bx, pivotY + 0.08, pivotZ - 0.125);
+      lockBolt.position.set(bx, 0.154, -0.003);
       group.add(lockBolt);
     }
   } else {

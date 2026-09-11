@@ -13,10 +13,11 @@ import {createAcousticView} from './acoustic-view.js';
 import {createContactShadow} from './contact-shadows.js';
 import {createDJBooth} from './dj-booth.js';
 import {createHazeBeams} from './haze-beams.js';
+import {createMossCanvas} from './moss-canvas.js';
 const $=id=>document.getElementById(id),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state={width:8,depth:10,height:3.5,model:'auto',cluster:false,view:'inside',focus:null,club:false};
 let scene,camera,renderer,controls,room,art,ceiling,back,sideWalls=[],strips=[],templates=[],speakers=[],frame,last=0,ready=false,currentStage='',drag=null,yaw=0,pitch=0;
-let ambient,key,rim,fill,wallMaterial,floorMaterial,artMaterial,acoustics,djBooth,hazeBeams;
+let ambient,key,rim,fill,wallMaterial,floorMaterial,artMaterial,acoustics,djBooth,hazeBeams,mossSim,mossTexture;
 const targetSize=new THREE.Vector3(8,3.5,10),currentSize=targetSize.clone(),nextCam=new THREE.Vector3(),nextLook=new THREE.Vector3(),look=new THREE.Vector3(0,1,-4),scaleVector=new THREE.Vector3();
 const zoom=createCameraZoom({getCamera:()=>camera,slider:$('camera-zoom'),output:$('camera-zoom-out'),minus:$('zoom-out'),plus:$('zoom-in')});
 const walk=createRoomWalk();
@@ -45,12 +46,23 @@ function update(){
  });
  $('layout').disabled=config.subs===0;
  syncNavigation(config);targetSize.set(state.width,state.height,state.depth);
+ renderSystemSpecs(state.model);
  if(ready){arrange();acoustics?.update(state);if(state.view!=='inside')setView(state.view);}
+}
+function renderSystemSpecs(modelId){
+  const card=$('speaker-spec-card');
+  if(!card)return;
+  const cfg=configuration(state.width*state.depth);
+  const resolvedId=(modelId==='auto'||!speakerSpecs[modelId])?(cfg.products.find(p=>p.role==='top')?.id||cfg.products[0]?.id||'adam-a7v'):modelId;
+  const spec=speakerSpecs[resolvedId];
+  if(!spec){card.hidden=true;return;}
+  card.hidden=false;
+  card.innerHTML=`<div class="spec-card-head"><span class="spec-card-tag">Acoustic Specs</span><strong class="spec-card-title">${spec.name}</strong></div><div class="spec-card-grid"><div class="spec-card-cell"><span class="spec-lbl">Frequency:</span><span class="spec-val">${spec.range[0]} Hz – ${spec.range[1]>=1000?(spec.range[1]/1000)+' kHz':spec.range[1]+' Hz'}</span></div><div class="spec-card-cell"><span class="spec-lbl">Output SPL:</span><span class="spec-val">${spec.output}</span></div><div class="spec-card-cell"><span class="spec-lbl">Dispersion:</span><span class="spec-val">${spec.dispersion}</span></div><div class="spec-card-cell"><span class="spec-lbl">Power:</span><span class="spec-val">${spec.power}</span></div></div>`;
 }
 $('size').addEventListener('input',e=>{Object.assign(state,dimensionsForArea(+e.target.value,state.width/state.depth));update();});
 ['width','depth','height'].forEach(k=>$(k).addEventListener('input',e=>{state[k]=+e.target.value;update();}));
 document.querySelectorAll('[data-area]').forEach(b=>b.addEventListener('click',()=>{Object.assign(state,dimensionsForArea(+b.dataset.area));update();}));
-$('model').addEventListener('change',e=>{state.model=e.target.value;update();});$('layout').addEventListener('change',e=>{state.cluster=e.target.checked;update();});
+$('model').addEventListener('change',e=>{state.model=e.target.value;renderSystemSpecs(state.model);update();});$('layout').addEventListener('change',e=>{state.cluster=e.target.checked;update();});
 function toggleDetails(open){walk.stop();$('details').hidden=!open;$('details-btn').setAttribute('aria-expanded',String(open));if(open)$('close-details').focus();else $('details-btn').focus();}
 const tabs=[...document.querySelectorAll('[data-tab]')];
 function selectTab(tab){tabs.forEach(t=>{const active=t===tab;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1;$('panel-'+t.dataset.tab).hidden=!active;});}
@@ -80,7 +92,7 @@ function setView(view,retainFocus=false){
 }
 function createCabinet(item){
  const wallHex=state.club?0x151d1a:0x434b3a,speakerColor=new THREE.Color(wallHex).multiplyScalar(0.8);
- if(state.model==='auto'||item.zone==='monitor'){
+ if(state.model==='auto'||Boolean(speakerSpecs[state.model])||item.zone==='monitor'){
   const tilt = item.tilt || 0;
   const shell = dimensionedCabinet(item.productId, item.size, speakerColor, tilt);
   if (item.y === 0) shell.add(createContactShadow(item.size[0], item.size[2]));
@@ -144,17 +156,20 @@ async function init(){
  // Keep depth testing so foreground cabinets still occlude the artwork naturally.
  back.renderOrder=-2;sideWalls.forEach(w=>w.renderOrder=-2);art.renderOrder=-1;
  scene.add(art);
+ mossSim=createMossCanvas(760,620);
+ mossTexture=new THREE.CanvasTexture(mossSim.canvas);
+ mossTexture.colorSpace=THREE.SRGBColorSpace;
+ artMaterial.map=mossTexture;
+ artMaterial.needsUpdate=true;
  djBooth=createDJBooth();scene.add(djBooth.group);
  const texLoader=new THREE.TextureLoader();
- const [texArt,texFloorDiff,texFloorNorm,texFloorRough,texWallNorm,texWallRough]=await Promise.all([
-  texLoader.loadAsync('./assets/acoustic-art.webp'),
+ const [texFloorDiff,texFloorNorm,texFloorRough,texWallNorm,texWallRough]=await Promise.all([
   texLoader.loadAsync('./assets/floor-diffuse.png'),
   texLoader.loadAsync('./assets/floor-normal.png'),
   texLoader.loadAsync('./assets/floor-roughness.png'),
   texLoader.loadAsync('./assets/wall-normal.png'),
   texLoader.loadAsync('./assets/wall-roughness.png')
  ]);
- texArt.colorSpace=THREE.SRGBColorSpace;artMaterial.map=texArt;artMaterial.needsUpdate=true;
  for(const t of [texFloorDiff,texFloorNorm,texFloorRough]){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(8,10);}
  texFloorDiff.colorSpace=THREE.SRGBColorSpace;
  floorMaterial.map=texFloorDiff;floorMaterial.normalMap=texFloorNorm;floorMaterial.normalScale.set(0.65,0.65);floorMaterial.roughnessMap=texFloorRough;floorMaterial.needsUpdate=true;
@@ -177,7 +192,8 @@ async function init(){
  function animate(time){frame=requestAnimationFrame(animate);if(document.hidden)return;const dt=Math.min((time-last)/1000,.1)||.016;last=time;const t=reduced?1:1-Math.exp(-5*dt);currentSize.lerp(targetSize,t);room.scale.copy(currentSize);
  djBooth.group.position.set(0,0,-currentSize.z/2+1.15);djBooth.group.visible=state.width>=4.2;if(djBooth.group.visible)djBooth.update(dt,state.club);
  hazeBeams.update(currentSize,state.club,dt);
- const artHeight=Math.min(currentSize.y*.84,3.9);art.scale.set(artHeight*1000/1636,artHeight,1);art.position.set(0,artHeight/2+.06,-currentSize.z/2+.022);
+ if(mossSim){mossSim.update(dt);mossTexture.needsUpdate=true;}
+ const artHeight=Math.min(currentSize.y*.84,3.9);art.scale.set(artHeight*760/620,artHeight,1);art.position.set(0,artHeight/2+.06,-currentSize.z/2+.022);
  for(const s of speakers){s.object.position.lerp(s.position,t);scaleVector.setScalar(s.scale);s.object.scale.lerp(scaleVector,t);}
  speakers=speakers.filter(s=>{if(s.scale===0&&s.object.scale.x<.004){scene.remove(s.object);s.object.traverse(m=>{if(m.material)m.material.dispose();if(s.object.userData.dimensioned&&m.geometry)m.geometry.dispose();});return false;}return true;});
  if(state.view==='inside'){
@@ -206,7 +222,9 @@ async function init(){
   $('loading').querySelector('p').textContent=`Preparing the system… ${++loaded}/4`;
   return {high,low};
  }));
- ready=true;acoustics=createAcousticView(scene,state,reduced,{open:()=>{toggleDetails(true);selectTab($('tab-sound'));},overview:()=>setView('overview'),setIsolationMode:active=>setIsolationMode(active)});$('loading').hidden=true;update();setView('inside');
+  ready=true;acoustics=createAcousticView(scene,state,reduced,{open:()=>{toggleDetails(true);selectTab($('tab-sound'));},overview:()=>setView('overview'),setIsolationMode:active=>setIsolationMode(active)});$('loading').hidden=true;update();setView('inside');
+  const sketchFrame=document.querySelector('.specimen .sketch');
+  if(sketchFrame){sketchFrame.src=sketchFrame.dataset.src;window.addEventListener('message',e=>{if(e.data?.type==='moss-ready')document.body.classList.add('ready');});}
  }catch(error){console.error(error);$('loading').hidden=false;$('loading').querySelector('p').textContent='The 3D room could not load. Reload or try a WebGL-enabled browser. Room and product controls remain available.';}
 }
 update();init();

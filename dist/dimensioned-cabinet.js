@@ -36,6 +36,7 @@ export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
   const isSub = id.includes('sub') || id === 'gc218';
   const isTop = id === 'dc12' || id === 'gc410';
   const isFloorstander = id === 'obslk';
+  const isStudio = id.startsWith('adam') || id.startsWith('mackie');
 
   function addDriver(x, y, radius) {
     const z = d / 2 - 0.048;
@@ -52,7 +53,143 @@ export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
     bodyGroup.add(cap);
   }
 
-  if (id === 'gc218') {
+  if (id === 'adam-a7v') {
+    // ADAM Audio A7V: Chamfered baffle, X-ART ribbon tweeter with HPS waveguide, MLM woofer, dual ports
+    for (const sx of [-1, 1]) {
+      const chamfer = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.028, d * 0.4), dark);
+      chamfer.position.set(sx * (w / 2 - 0.008), h - 0.008, d / 2 - d * 0.2);
+      chamfer.rotation.z = sx * Math.PI / 4;
+      bodyGroup.add(chamfer);
+    }
+    const hpsY = h * 0.73, hpsZ = d / 2 - 0.032;
+    const hpsDish = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.038, 0.014, 32), dark);
+    hpsDish.rotation.x = Math.PI / 2;
+    hpsDish.position.set(0, hpsY, hpsZ - 0.006);
+    bodyGroup.add(hpsDish);
+    box(0.024, 0.038, 0.008, 0, hpsY, hpsZ - 0.008, dark);
+    const goldMat = new THREE.MeshStandardMaterial({color: 0xdfb43b, metalness: 0.85, roughness: 0.25});
+    for (let py = -0.014; py <= 0.014; py += 0.0045) {
+      const pleat = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.0018, 0.003), goldMat);
+      pleat.position.set(0, hpsY + py, hpsZ - 0.005);
+      bodyGroup.add(pleat);
+    }
+    for (let sy = -0.012; sy <= 0.012; sy += 0.008) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.0016, 0.002), dark);
+      bar.position.set(0, hpsY + sy, hpsZ - 0.002);
+      bodyGroup.add(bar);
+    }
+    const wooferY = h * 0.36, wooferZ = d / 2 - 0.032, wooferR = 0.076;
+    const surround = new THREE.Mesh(new THREE.TorusGeometry(wooferR, 0.0075, 12, 48), dark);
+    surround.position.set(0, wooferY, wooferZ);
+    bodyGroup.add(surround);
+    const mineralCone = new THREE.Mesh(new THREE.ConeGeometry(wooferR - 0.008, 0.026, 48, 1, true), cone);
+    mineralCone.rotation.x = Math.PI / 2;
+    mineralCone.position.set(0, wooferY, wooferZ - 0.016);
+    bodyGroup.add(mineralCone);
+    const dustCap = new THREE.Mesh(new THREE.SphereGeometry(wooferR * 0.32, 24, 12), dark);
+    dustCap.scale.set(1, 1, 0.3);
+    dustCap.position.set(0, wooferY, wooferZ - 0.008);
+    bodyGroup.add(dustCap);
+    for (const sx of [-1, 1]) {
+      const port = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.011, 0.035, 24), dark);
+      port.rotation.x = Math.PI / 2;
+      port.position.set(sx * (w * 0.31), h * 0.095, d / 2 - 0.03);
+      bodyGroup.add(port);
+      const flare = new THREE.Mesh(new THREE.TorusGeometry(0.013, 0.0025, 8, 24), dark);
+      flare.position.set(sx * (w * 0.31), h * 0.095, d / 2 - 0.018);
+      bodyGroup.add(flare);
+    }
+    const logoPlate = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.008, 0.002), new THREE.MeshStandardMaterial({color: 0xc8d0c6, metalness: 0.6, roughness: 0.4}));
+    logoPlate.position.set(0, h * 0.095, d / 2 - 0.018);
+    bodyGroup.add(logoPlate);
+  } else if (id === 'mackie-hr824') {
+    // Mackie HR824 Mk2: Cast Aluminum Zero Edge baffle, Titanium dome waveguide, 8.75" woofer, Mackie green badge
+    box(w - 0.008, h - 0.008, 0.022, 0, h / 2, d / 2 - 0.02, dark);
+    const twY = h * 0.75, twZ = d / 2 - 0.016;
+    const wg = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.032, 0.014, 36), dark);
+    wg.rotation.x = Math.PI / 2;
+    wg.position.set(0, twY, twZ - 0.007);
+    bodyGroup.add(wg);
+    const tiMat = new THREE.MeshStandardMaterial({color: 0xb5bfb8, metalness: 0.85, roughness: 0.25});
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.016, 24, 12), tiMat);
+    dome.scale.set(1, 1, 0.45);
+    dome.position.set(0, twY, twZ - 0.004);
+    bodyGroup.add(dome);
+    const lens = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.003, 0.003), dark);
+    lens.position.set(0, twY, twZ);
+    bodyGroup.add(lens);
+    const wfY = h * 0.38, wfZ = d / 2 - 0.016, wfR = 0.098;
+    const wfSurround = new THREE.Mesh(new THREE.TorusGeometry(wfR, 0.0085, 12, 48), dark);
+    wfSurround.position.set(0, wfY, wfZ);
+    bodyGroup.add(wfSurround);
+    const wfCone = new THREE.Mesh(new THREE.ConeGeometry(wfR - 0.01, 0.032, 48, 1, true), cone);
+    wfCone.rotation.x = Math.PI / 2;
+    wfCone.position.set(0, wfY, wfZ - 0.018);
+    bodyGroup.add(wfCone);
+    const wfCap = new THREE.Mesh(new THREE.SphereGeometry(wfR * 0.35, 24, 12), dark);
+    wfCap.scale.set(1, 1, 0.35);
+    wfCap.position.set(0, wfY, wfZ - 0.008);
+    bodyGroup.add(wfCap);
+    const mackieGreen = new THREE.MeshStandardMaterial({color: 0x62cc3b, emissive: 0x225514, roughness: 0.3});
+    const badge = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.003, 24), mackieGreen);
+    badge.rotation.x = Math.PI / 2;
+    badge.position.set(0, h * 0.09, d / 2 - 0.008);
+    bodyGroup.add(badge);
+    const icon = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.009, 0.001), new THREE.MeshBasicMaterial({color: 0xffffff}));
+    icon.position.set(0, h * 0.09, d / 2 - 0.006);
+    bodyGroup.add(icon);
+  } else if (id === 'mackie-cr5') {
+    // Mackie CR5-X: Compact reference, green trim ring, illuminated volume knob
+    box(w - 0.006, h - 0.006, 0.016, 0, h / 2, d / 2 - 0.018, dark);
+    const twY = h * 0.76, twZ = d / 2 - 0.014;
+    const twDish = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.02, 0.008, 24), dark);
+    twDish.rotation.x = Math.PI / 2;
+    twDish.position.set(0, twY, twZ - 0.004);
+    bodyGroup.add(twDish);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.012, 16, 8), dark);
+    dome.scale.set(1, 1, 0.4);
+    dome.position.set(0, twY, twZ - 0.002);
+    bodyGroup.add(dome);
+    const wfY = h * 0.38, wfZ = d / 2 - 0.014, wfR = 0.058;
+    const greenTrim = new THREE.Mesh(new THREE.TorusGeometry(wfR + 0.004, 0.0025, 8, 36), new THREE.MeshStandardMaterial({color: 0x62cc3b, roughness: 0.3}));
+    greenTrim.position.set(0, wfY, wfZ);
+    bodyGroup.add(greenTrim);
+    const wfSurround = new THREE.Mesh(new THREE.TorusGeometry(wfR, 0.0055, 8, 36), dark);
+    wfSurround.position.set(0, wfY, wfZ);
+    bodyGroup.add(wfSurround);
+    const wfCone = new THREE.Mesh(new THREE.ConeGeometry(wfR - 0.006, 0.02, 36, 1, true), cone);
+    wfCone.rotation.x = Math.PI / 2;
+    wfCone.position.set(0, wfY, wfZ - 0.012);
+    bodyGroup.add(wfCone);
+    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.008, 24), dark);
+    knob.rotation.x = Math.PI / 2;
+    knob.position.set(w * 0.28, h * 0.12, d / 2 - 0.012);
+    bodyGroup.add(knob);
+    const knobRing = new THREE.Mesh(new THREE.TorusGeometry(0.01, 0.0016, 8, 24), new THREE.MeshStandardMaterial({color: 0x62cc3b, emissive: 0x225514}));
+    knobRing.position.set(w * 0.28, h * 0.12, d / 2 - 0.012);
+    bodyGroup.add(knobRing);
+  } else if (id === 'adam-sub10') {
+    // ADAM Audio Sub10 Mk2: 10" cone + front flared port
+    const wfY = h * 0.52, wfZ = d / 2 - 0.035, wfR = 0.125;
+    const wfSurround = new THREE.Mesh(new THREE.TorusGeometry(wfR, 0.011, 12, 48), dark);
+    wfSurround.position.set(0, wfY, wfZ);
+    bodyGroup.add(wfSurround);
+    const wfCone = new THREE.Mesh(new THREE.ConeGeometry(wfR - 0.012, 0.038, 48, 1, true), cone);
+    wfCone.rotation.x = Math.PI / 2;
+    wfCone.position.set(0, wfY, wfZ - 0.024);
+    bodyGroup.add(wfCone);
+    const wfCap = new THREE.Mesh(new THREE.SphereGeometry(wfR * 0.35, 24, 12), dark);
+    wfCap.scale.set(1, 1, 0.3);
+    wfCap.position.set(0, wfY, wfZ - 0.012);
+    bodyGroup.add(wfCap);
+    const port = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.032, 0.05, 32), dark);
+    port.rotation.x = Math.PI / 2;
+    port.position.set(0, h * 0.18, d / 2 - 0.03);
+    bodyGroup.add(port);
+    const portFlare = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.005, 8, 32), dark);
+    portFlare.position.set(0, h * 0.18, d / 2 - 0.016);
+    bodyGroup.add(portFlare);
+  } else if (id === 'gc218') {
     addDriver(-w * 0.25, h / 2, 0.21);
     addDriver(w * 0.25, h / 2, 0.21);
   } else if (id === 'gc118-sub') {
@@ -71,7 +208,7 @@ export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
     addDriver(0, h / 2, Math.min(w * 0.25, h * 0.25));
   }
 
-  // High-Frequency Dispersion Horn
+  // High-Frequency Dispersion Horn (for PA cabinets)
   if ((id === 'dc12' || id === 'obslk') && h > 0.35) {
     const hornY = id === 'obslk' ? h * 0.76 : h * 0.78;
     const hornW = Math.min(w * 0.45, 0.22);
@@ -85,32 +222,43 @@ export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
   }
 
   // Bass Reflex Port (for Subwoofers)
-  if (isSub) {
+  if (isSub && !id.startsWith('adam')) {
     const portH = 0.032;
     const portW = w * 0.65;
     const portY = wall + portH / 2 + 0.015;
     box(portW, portH, 0.04, 0, portY, d / 2 - 0.055, dark);
   }
 
-  // Constant-pitch protective acoustic grille
-  const points = [], pitch = 0.012, front = d / 2 - 0.012;
-  for (let x = -w / 2 + 0.03; x < w / 2 - 0.025; x += pitch) {
-    points.push(x, 0.03, front, x, h - 0.03, front);
-  }
-  for (let y = 0.03; y < h - 0.025; y += pitch) {
-    points.push(-w / 2 + 0.03, y, front, w / 2 - 0.03, y, front);
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-  bodyGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({color: 0x68736a, transparent: true, opacity: 0.48})));
+  // Only PA speakers use protective wire grilles & corner chassis bolts
+  if (!isStudio) {
+    const points = [], pitch = 0.012, front = d / 2 - 0.012;
+    for (let x = -w / 2 + 0.03; x < w / 2 - 0.025; x += pitch) {
+      points.push(x, 0.03, front, x, h - 0.03, front);
+    }
+    for (let y = 0.03; y < h - 0.025; y += pitch) {
+      points.push(-w / 2 + 0.03, y, front, w / 2 - 0.03, y, front);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+    bodyGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({color: 0x68736a, transparent: true, opacity: 0.48})));
 
-  // Corner Protector Brackets & Screws (Chassis Hardware)
-  for (const x of [-w / 2 + 0.032, w / 2 - 0.032]) {
-    for (const y of [0.032, h - 0.032]) {
-      const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.004, 8), metal);
-      bolt.rotation.x = Math.PI / 2;
-      bolt.position.set(x, y, d / 2 - 0.006);
-      bodyGroup.add(bolt);
+    for (const x of [-w / 2 + 0.032, w / 2 - 0.032]) {
+      for (const y of [0.032, h - 0.032]) {
+        const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.004, 8), metal);
+        bolt.rotation.x = Math.PI / 2;
+        bolt.position.set(x, y, d / 2 - 0.006);
+        bodyGroup.add(bolt);
+      }
+    }
+  } else {
+    // Studio monitors: 4 acoustic decoupling rubber feet on base
+    const feetMat = new THREE.MeshStandardMaterial({color: 0x111312, roughness: 0.95});
+    for (const fx of [-w / 2 + 0.03, w / 2 - 0.03]) {
+      for (const fz of [-d / 2 + 0.03, d / 2 - 0.03]) {
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.006, 16), feetMat);
+        foot.position.set(fx, 0.003, fz);
+        bodyGroup.add(foot);
+      }
     }
   }
 

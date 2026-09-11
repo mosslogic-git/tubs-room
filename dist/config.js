@@ -1,15 +1,19 @@
 import {speakerSpecs} from './speaker-specs.js';
 // Acoustic system configurations and electroacoustic room models.
 export const stages=[
- {id:'hifi',family:'Studio & HiFi',name:'Close Listening',tier:'01',area:30,tops:2,subs:0,model:1,copy:'Intimate high-fidelity acoustic zone.\nPrecision stereophonic monitoring and direct sound clarity.',products:[{id:'obslk',name:'FS-208',description:'2-way floorstander',role:'top',count:2}]},
+ {id:'hifi',family:'Studio & HiFi',name:'Close Listening',tier:'01',area:30,tops:2,subs:0,model:1,copy:'Intimate high-fidelity acoustic zone.\nPrecision stereophonic monitoring and direct sound clarity.',products:[{id:'adam-a7v',name:'ADAM A7V',description:'X-ART ribbon studio monitor',role:'top',count:2},{id:'mackie-hr824',name:'Mackie HR824',description:'Logarithmic waveguide reference',role:'top',count:2},{id:'obslk',name:'FS-208',description:'2-way floorstander',role:'top',count:2}]},
  {id:'bigfi',family:'Club & Lounge',name:'Small Club',tier:'02',area:80,tops:2,subs:4,model:2,copy:'Controlled dispersion high-output sound system.\nImpactful bass response for dynamic music playback.',products:[{id:'dc12',name:'DC-12',description:'Dual concentric point source',role:'top',count:2},{id:'gc118-sub',name:'SUB-118',description:'18" bass reflex subwoofer',role:'bass',count:4}]},
  {id:'stack',family:'Main Dancefloor',name:'Full Floor',tier:'03',area:180,tops:4,subs:8,model:0,copy:'High-SPL point source array system.\nMaximum acoustic headroom and deep sub-bass coverage.',products:[{id:'gc410',name:'ARRAY-410',description:'Point source array top',role:'top',count:4},{id:'gc218',name:'SUB-218',description:'Dual 18" high-power subwoofer',role:'bass',count:8}]}
 ];
 export function configuration(area){return stages[area<50?0:area<120?1:2];}
 export function dimensionsForArea(area,ratio=.8){let width=Math.sqrt(area*ratio),depth=area/width;if(width<4){width=4;depth=area/width;}if(width>16){width=16;depth=area/width;}if(depth<5){depth=5;width=area/depth;}if(depth>20){depth=20;width=area/depth;}return {width,depth};}
 export function placements(state){
- const c=configuration(state.width*state.depth),topId=c.products.find(p=>p.role==='top').id,bassId=c.products.find(p=>p.role==='bass')?.id;
- const ts=speakerSpecs[topId].size,bs=bassId?speakerSpecs[bassId].size:[0,0,0],model=state.model==='auto'?c.model:Number(state.model),items=[],n=c.subs/2,gap=.035;
+ const c=configuration(state.width*state.depth);
+ const defaultTopId=c.products.find(p=>p.role==='top').id;
+ const isKnownTop=state.model&&speakerSpecs[state.model]&&!speakerSpecs[state.model].name.includes('Subwoofer');
+ const topId=isKnownTop?state.model:defaultTopId;
+ const bassId=c.products.find(p=>p.role==='bass')?.id;
+ const ts=speakerSpecs[topId].size,bs=bassId?speakerSpecs[bassId].size:[0,0,0],model=state.model==='auto'?c.model:(Number.isFinite(+state.model)?Number(state.model):c.model),items=[],n=c.subs/2,gap=.035;
  const cols=n>2?2:1,stackWidth=n?cols*bs[0]+(cols-1)*gap:ts[0],spread=Math.min(4.8,state.width/2-stackWidth/2-.3),z=-state.depth/2+Math.min(2.8,state.depth*.44);
  for(const side of [-1,1]){
   for(let i=0;i<n;i++){

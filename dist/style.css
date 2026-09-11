@@ -442,3 +442,267 @@
     border-radius: 16px !important;
   }
 }
+
+/* ==========================================================================
+   Modern Glassmorphic Floating HUD Controls (Walk Pad & Room Console)
+   ========================================================================== */
+.walk-controls {
+  position: absolute;
+  z-index: 2;
+  left: 24px;
+  bottom: 110px;
+  display: grid !important;
+  grid-template-columns: repeat(3, 44px) !important;
+  gap: 6px !important;
+  padding: 12px !important;
+  background: rgba(13, 20, 14, 0.48) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 1px solid rgba(140, 194, 113, 0.22) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
+  user-select: none;
+  transition: all 0.25s ease;
+}
+
+.walk-controls > span {
+  grid-column: 1 / -1 !important;
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(220, 235, 210, 0.85) !important;
+  text-align: center !important;
+  padding-bottom: 2px !important;
+}
+
+.walk-controls button {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #dce7d4 !important;
+  font-size: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  touch-action: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.walk-controls button:hover {
+  background: rgba(140, 194, 113, 0.18) !important;
+  border-color: rgba(140, 194, 113, 0.38) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(140, 194, 113, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.walk-controls button:active {
+  background: var(--green) !important;
+  color: #10170d !important;
+  border-color: var(--green) !important;
+  transform: translateY(1px) scale(0.96) !important;
+  box-shadow: 0 0 16px rgba(140, 194, 113, 0.6) !important;
+}
+
+.walk-controls [data-move=forward] {
+  grid-column: 2 !important;
+}
+
+.walk-controls [data-move=left] {
+  grid-column: 1 !important;
+}
+
+.walk-controls small {
+  grid-column: 1 / -1 !important;
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif !important;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.03em !important;
+  color: rgba(165, 185, 155, 0.8) !important;
+  text-align: center !important;
+  padding-top: 4px !important;
+}
+
+/* Glassmorphic Room Console Pill */
+.room-console {
+  left: 50% !important;
+  right: auto !important;
+  bottom: 30px !important;
+  transform: translateX(-50%) !important;
+  width: min(470px, calc(100% - 64px)) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 20px !important;
+  background: rgba(13, 20, 14, 0.48) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 1px solid rgba(140, 194, 113, 0.22) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 999px !important;
+  padding: 10px 24px !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
+  z-index: 2;
+  transition: all 0.25s ease;
+}
+
+.room-console:hover {
+  background: rgba(13, 20, 14, 0.58) !important;
+  border-color: rgba(140, 194, 113, 0.32) !important;
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) inset !important;
+}
+
+.room-console > label {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  color: rgba(225, 237, 218, 0.92) !important;
+  white-space: nowrap !important;
+}
+
+.room-console input[type=range] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  height: 26px !important;
+  min-width: 30px !important;
+  margin: 0 !important;
+  flex: 1 !important;
+  cursor: ew-resize !important;
+}
+
+.room-console input[type=range]::-webkit-slider-runnable-track {
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #8cc271 0%, rgba(140, 194, 113, 0.7) 45%, rgba(255, 255, 255, 0.16) 100%) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+}
+
+.room-console input[type=range]::-webkit-slider-thumb {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  margin-top: -7px !important;
+  background: #eaf8df !important;
+  border: 2px solid #8cc271 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 12px rgba(140, 194, 113, 0.5) !important;
+  cursor: grab !important;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease !important;
+}
+
+.room-console input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.18) !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5), 0 0 18px rgba(140, 194, 113, 0.8) !important;
+}
+
+.room-console input[type=range]::-webkit-slider-thumb:active {
+  cursor: grabbing !important;
+  transform: scale(1.25) !important;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.6), 0 0 24px rgba(140, 194, 113, 0.95) !important;
+}
+
+.room-console input[type=range]::-moz-range-track {
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #8cc271 0%, rgba(140, 194, 113, 0.7) 45%, rgba(255, 255, 255, 0.16) 100%) !important;
+  border: none !important;
+}
+
+.room-console input[type=range]::-moz-range-thumb {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background: #eaf8df !important;
+  border: 2px solid #8cc271 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 12px rgba(140, 194, 113, 0.5) !important;
+  cursor: grab !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.room-console input[type=range]::-moz-range-thumb:hover {
+  transform: scale(1.18) !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5), 0 0 18px rgba(140, 194, 113, 0.8) !important;
+}
+
+.room-console .room-value {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 3px !important;
+  white-space: nowrap !important;
+  min-width: 62px !important;
+}
+
+.room-console .room-value output {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 21px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1 !important;
+}
+
+.room-console .room-value > span {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #8cc271 !important;
+}
+
+#ac-legend {
+  background: rgba(13, 20, 14, 0.52) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border: 1px solid rgba(140, 194, 113, 0.22) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
+}
+
+@media(max-width: 760px) {
+  .walk-controls {
+    left: 12px !important;
+    bottom: 96px !important;
+    padding: 9px !important;
+    gap: 4px !important;
+    grid-template-columns: repeat(3, 38px) !important;
+    border-radius: 16px !important;
+  }
+  .walk-controls button {
+    min-width: 38px !important;
+    min-height: 38px !important;
+    font-size: 17px !important;
+    border-radius: 9px !important;
+  }
+  .room-console {
+    bottom: 22px !important;
+    width: calc(100% - 24px) !important;
+    gap: 12px !important;
+    padding: 9px 16px !important;
+  }
+  .room-console > label {
+    display: none !important;
+  }
+  .room-console .room-value output {
+    font-size: 18px !important;
+  }
+}
+
+@media(max-height: 500px) {
+  .walk-controls {
+    bottom: 80px !important;
+    left: 12px !important;
+  }
+  .walk-controls > span,
+  .walk-controls small {
+    display: none !important;
+  }
+}

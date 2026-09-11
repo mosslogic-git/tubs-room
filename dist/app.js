@@ -5,7 +5,7 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {MeshoptDecoder} from './vendor/meshopt_decoder.mjs';
 import {RoomEnvironment} from './vendor/RoomEnvironment.js';
-import {configuration,stages,placements,dimensionsForArea,monitorPlacements} from './config.js?v=vstack80';
+import {configuration,stages,placements,dimensionsForArea,monitorPlacements} from './config.js?v=monflat';
 import {speakerFrame,pickSpeaker,bindSpeakerSelection} from './speaker-focus.js';
 import {createRoomWalk,bindRoomWalk} from './camera-walk.js';
 import {createCameraZoom,bindCameraGestures} from './camera-zoom.js';
@@ -76,7 +76,7 @@ function setView(view,retainFocus=false){
 function createCabinet(item){
  const wallHex=state.club?0x151d1a:0x434b3a,speakerColor=new THREE.Color(wallHex).multiplyScalar(0.8);
  if(state.model==='auto'||item.zone==='monitor'){
-  const tilt = item.zone === 'monitor' ? (item.tilt ?? (item.role === 'top' ? 30 * Math.PI / 180 : 0)) : (item.tilt || 0);
+  const tilt = item.tilt || 0;
   const shell = dimensionedCabinet(item.productId, item.size, speakerColor, tilt);
   if (item.y === 0) shell.add(createContactShadow(item.size[0], item.size[2]));
   scene.add(shell);
@@ -90,7 +90,7 @@ function createCabinet(item){
  obj.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.name='cabinet-shell';m.material.color.copy(speakerColor);m.castShadow=true;m.receiveShadow=true;}});
  const scaled=new THREE.Group();scaled.add(obj);scaled.scale.setScalar(Math.min(item.size[0]/size.x,item.size[1]/size.y,item.size[2]/size.z));
  const shell=new THREE.Group();
- const tilt = item.zone === 'monitor' ? (item.tilt ?? (item.role === 'top' ? 30 * Math.PI / 180 : 0)) : (item.tilt || 0);
+ const tilt = item.tilt || 0;
  if(tilt>0){const pY=0.085,pZ=item.size[2]/2-0.035,piv=new THREE.Group();piv.position.set(0,pY,pZ);scaled.position.set(0,-pY,-pZ);piv.rotation.x=tilt;piv.add(scaled);shell.add(piv);}else{shell.add(scaled);}
  if(item.y===0)shell.add(createContactShadow(item.size[0],item.size[2]));scene.add(shell);shell.scale.setScalar(reduced?1:.001);shell.position.set(item.x,item.y,item.z);
  return {object:shell,position:new THREE.Vector3(),scale:1,key:`${item.zone||"main"}-${item.index}-${item.productId}-${state.model}`,role:item.role,productId:item.productId,size:[...item.size]};

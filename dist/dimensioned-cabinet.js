@@ -118,13 +118,14 @@ export function dimensionedCabinet(id, size, color = 0x363c2e, tilt = 0) {
   const tiltAngle = tilt > 0 ? tilt : 0;
 
   if (tiltAngle > 0) {
-    const pivotY = 0.085;
-    const pivotZ = d / 2 - 0.035;
+    const pivotY = 0.02;
+    const pivotZ = -d / 2 + 0.04;
 
     const pivotGroup = new THREE.Group();
     pivotGroup.position.set(0, pivotY, pivotZ);
     bodyGroup.position.set(0, -pivotY, -pivotZ);
-    pivotGroup.rotation.x = tiltAngle;
+    // Negative rotation around X pitches the front face (+Z) UPWARDS towards the DJ/listener
+    pivotGroup.rotation.x = -tiltAngle;
     pivotGroup.add(bodyGroup);
     group.add(pivotGroup);
 

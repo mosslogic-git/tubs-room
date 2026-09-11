@@ -30,12 +30,12 @@ export function monitorPlacements(state){
  const bassId=config.products.find(p=>p.role==='bass')?.id||'gc118-sub';
  const bs=speakerSpecs[bassId].size,ts=speakerSpecs.dc12.size;
  const x=Math.min(1.65,state.width/2-bs[0]/2-.3),z=-state.depth/2+1.15;
- const topZ = z + (bs[2] - ts[2]) / 2 - 0.025;
+ const topZ = z + (bs[2] - ts[2]) / 2;
  return [-1,1].flatMap(side=>{
   const rotation=Math.atan2(-side*x,-.6);
   return [
    {index:3,role:'bass',productId:bassId,x:side*x,y:0,z,size:bs,height:bs[1],zone:'monitor',rotation},
-   {index:2,role:'top',productId:'dc12',x:side*x,y:bs[1],z:topZ,size:ts,height:ts[1],zone:'monitor',rotation,tilt:30*Math.PI/180}
+   {index:2,role:'top',productId:'dc12',x:side*x,y:bs[1],z:topZ,size:ts,height:ts[1],zone:'monitor',rotation,tilt:0}
   ];
  });
 }

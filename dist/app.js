@@ -129,9 +129,9 @@ function setIsolationMode(active){
  wallMaterial.opacity=active?0.16:1.0;
  sideWalls.forEach(w=>{w.material.transparent=true;w.material.opacity=active?0.14:1.0;});
  if(ceiling?.material){ceiling.material.transparent=true;ceiling.material.opacity=active?0.12:1.0;}
- if(artMaterial){artMaterial.transparent=true;artMaterial.opacity=active?0.10:(state.club?0.65:0.85);}
+ if(artMaterial){artMaterial.transparent=true;artMaterial.opacity=active?0.10:(state.club?0.80:0.95);}
 }
-function applyLighting(){if(!ambient||!artMaterial)return;const club=state.club;djBooth?.setClub(club);scene.background.set(club?0x070b0d:0x171d13);scene.fog.color.copy(scene.background);scene.fog.density=club?.032:.018;ambient.intensity=club?.9:2.25;key.intensity=club?3.3:4.4;key.color.set(club?0xa8df75:0xf2efd9);rim.intensity=club?5:2.5;rim.color.set(club?0x7ca8e7:0xb9d298);fill.intensity=club?1.2:2.4;floorMaterial.color.set(club?0x303b35:0xffffff);wallMaterial.color.set(club?0x080c10:0x171c20);const wallHex=club?0x151d1a:0x434b3a;sideWalls.forEach(w=>w.material.color.set(wallHex));const speakerColor=new THREE.Color(wallHex).multiplyScalar(0.8);speakers.forEach(s=>s.object.traverse(m=>{if(m.isMesh&&m.material?.name==='cabinet-shell')m.material.color.copy(speakerColor);}));ceiling.material.color.set(club?0x202b3b:0x465361);artMaterial.opacity=isolationActive?0.10:(club?.65:.85);strips.forEach(s=>s.material.color.set(club?0x92b3d5:0xc5d8af));if(isolationActive)setIsolationMode(true);}
+function applyLighting(){if(!ambient||!artMaterial)return;const club=state.club;djBooth?.setClub(club);scene.background.set(club?0x070b0d:0x171d13);scene.fog.color.copy(scene.background);scene.fog.density=club?.032:.018;ambient.intensity=club?.9:2.25;key.intensity=club?3.3:4.4;key.color.set(club?0xa8df75:0xf2efd9);rim.intensity=club?5:2.5;rim.color.set(club?0x7ca8e7:0xb9d298);fill.intensity=club?1.2:2.4;floorMaterial.color.set(club?0x303b35:0xffffff);wallMaterial.color.set(club?0x080c10:0x171c20);const wallHex=club?0x151d1a:0x434b3a;sideWalls.forEach(w=>w.material.color.set(wallHex));const speakerColor=new THREE.Color(wallHex).multiplyScalar(0.8);speakers.forEach(s=>s.object.traverse(m=>{if(m.isMesh&&m.material?.name==='cabinet-shell')m.material.color.copy(speakerColor);}));ceiling.material.color.set(club?0x202b3b:0x465361);artMaterial.opacity=isolationActive?0.10:(club?.80:.95);strips.forEach(s=>s.material.color.set(club?0x92b3d5:0xc5d8af));if(isolationActive)setIsolationMode(true);}
 async function init(){
  try{
  scene=new THREE.Scene();scene.background=new THREE.Color(0x171d13);scene.fog=new THREE.FogExp2(0x171d13,.018);
@@ -151,7 +151,7 @@ async function init(){
  for(const x of [-.499,.499]){for(let i=0;i<6;i++){const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,0,i/5-.5),new THREE.Vector3(x,1,i/5-.5)]);room.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:0xa6b599,transparent:true,opacity:.16})));}}
  for(const x of [-.42,.42]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.003,.002,.84),new THREE.MeshBasicMaterial({color:0xc5d8af}));strip.position.set(x,.996,0);room.add(strip);strips.push(strip);}
  const threshold=new THREE.Mesh(new THREE.BoxGeometry(.96,.003,.002),new THREE.MeshBasicMaterial({color:0xa6c58a,transparent:true,opacity:.45}));threshold.position.set(0,.003,-.46);room.add(threshold);
- artMaterial=new THREE.MeshBasicMaterial({transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide});art=new THREE.Mesh(new THREE.PlaneGeometry(1,1),artMaterial);
+ artMaterial=new THREE.MeshBasicMaterial({transparent:true,opacity:.95,depthWrite:false,side:THREE.DoubleSide});art=new THREE.Mesh(new THREE.PlaneGeometry(1,1),artMaterial);
  // Stable transparent passes: walls, wall artwork, then scene effects.
  // Keep depth testing so foreground cabinets still occlude the artwork naturally.
  back.renderOrder=-2;sideWalls.forEach(w=>w.renderOrder=-2);art.renderOrder=-1;
@@ -223,8 +223,6 @@ async function init(){
   return {high,low};
  }));
   ready=true;acoustics=createAcousticView(scene,state,reduced,{open:()=>{toggleDetails(true);selectTab($('tab-sound'));},overview:()=>setView('overview'),setIsolationMode:active=>setIsolationMode(active)});$('loading').hidden=true;update();setView('inside');
-  const sketchFrame=document.querySelector('.specimen .sketch');
-  if(sketchFrame){sketchFrame.src=sketchFrame.dataset.src;window.addEventListener('message',e=>{if(e.data?.type==='moss-ready')document.body.classList.add('ready');});}
  }catch(error){console.error(error);$('loading').hidden=false;$('loading').querySelector('p').textContent='The 3D room could not load. Reload or try a WebGL-enabled browser. Room and product controls remain available.';}
 }
 update();init();

@@ -60,9 +60,9 @@ export function createMossCanvas(width = 760, height = 620) {
   }
   const noise = makeNoise2D(7);
 
-  // Palette: forest -> chartreuse
-  const DARK = [27, 50, 18], DK2 = [41, 74, 28], MID = [63, 99, 41],
-        LT = [106, 153, 60], CHR = [166, 199, 78], BRT = [198, 221, 107];
+  // Palette: vibrant moss greens (emerald -> chartreuse)
+  const DARK = [52, 92, 38], DK2 = [72, 122, 48], MID = [102, 158, 66],
+        LT = [142, 196, 88], CHR = [182, 226, 98], BRT = [218, 245, 132];
 
   function inside(x, y) {
     const ang = Math.atan2(y - Cd.y, x - Cd.x);
@@ -163,9 +163,8 @@ export function createMossCanvas(width = 760, height = 620) {
     ambientElapsed += dt * 1000;
     const t = ambientElapsed * 0.001;
 
-    // Subtle dark studio backdrop for acoustic fabric
-    ctx.fillStyle = 'rgba(14, 20, 15, 0.96)';
-    ctx.fillRect(0, 0, width, height);
+    // Transparent background - seamlessly integrates directly onto the acoustic room wall
+    ctx.clearRect(0, 0, width, height);
 
     // Wind dynamics
     const gust = Math.sin(t * 0.5) * 0.4 + Math.sin(t * 0.23) * 0.25;
@@ -188,8 +187,8 @@ export function createMossCanvas(width = 760, height = 620) {
       const o = bed[k];
       const bk = Math.floor((o.x / VW) * NB);
       const wx = windCols[Math.max(0, Math.min(NB - 1, bk))] * 0.7 + Math.sin(t * 0.9 + o.ph) * 0.8;
-      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, ${o.a})`;
-      ctx.lineWidth = 0.8;
+      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, ${Math.max(o.a, 0.75)})`;
+      ctx.lineWidth = 0.9;
       blade(o.x, o.y, o.len, o.ang, wx, 1.1);
     }
 
@@ -199,10 +198,10 @@ export function createMossCanvas(width = 760, height = 620) {
     ctx.translate(-Cd.x, -Cd.y);
 
     // Faint dome outlines
-    ctx.lineWidth = 1.4;
-    ctx.strokeStyle = 'rgba(63, 99, 41, 0.4)';
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = 'rgba(102, 158, 66, 0.55)';
     ellipseArc(Cb.x, Cb.y + 4, 252, 246);
-    ctx.strokeStyle = 'rgba(27, 50, 18, 0.5)';
+    ctx.strokeStyle = 'rgba(72, 122, 48, 0.65)';
     ellipseArc(Cd.x, Cd.y, Rd, Rd * 0.985);
 
     // Orb filaments
@@ -210,8 +209,8 @@ export function createMossCanvas(width = 760, height = 620) {
       const o = blades[k];
       const bk = Math.floor((o.x / VW) * NB);
       const wx = windCols[Math.max(0, Math.min(NB - 1, bk))] + Math.sin(t * 0.8 + o.ph) * 0.5;
-      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, ${o.a})`;
-      ctx.lineWidth = o.sw;
+      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, ${Math.max(o.a, 0.82)})`;
+      ctx.lineWidth = Math.max(o.sw, 1.0);
       blade(o.x, o.y, o.len, o.ang, wx, o.stiff);
     }
 
@@ -220,11 +219,11 @@ export function createMossCanvas(width = 760, height = 620) {
       const o = spores[k];
       const bk = Math.floor((o.x / VW) * NB);
       const wx = windCols[Math.max(0, Math.min(NB - 1, bk))] * 1.3 + Math.sin(t * 0.7 + o.ph) * 1.2;
-      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.82)`;
-      ctx.lineWidth = 0.9;
+      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.92)`;
+      ctx.lineWidth = 1.0;
       const tip = blade(o.x, o.y, o.len, o.ang, wx, 1.4);
       if (o.cap) {
-        ctx.fillStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.85)`;
+        ctx.fillStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.95)`;
         ctx.save();
         ctx.translate(tip.ex, tip.ey);
         ctx.rotate(Math.atan2(tip.ey - o.y, tip.ex - o.x) - Math.PI / 2);
@@ -236,10 +235,10 @@ export function createMossCanvas(width = 760, height = 620) {
     }
 
     // Standalone waving tendrils
-    ctx.lineWidth = 0.8;
+    ctx.lineWidth = 1.0;
     for (let k = 0; k < tendrils.length; k++) {
       const o = tendrils[k];
-      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.6)`;
+      ctx.strokeStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.85)`;
       ctx.beginPath();
       let px = o.x0, py = 90;
       ctx.moveTo(px, py + 18);
@@ -250,9 +249,9 @@ export function createMossCanvas(width = 760, height = 620) {
         ctx.lineTo(px, py);
       }
       ctx.stroke();
-      ctx.fillStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.65)`;
+      ctx.fillStyle = `rgba(${o.col[0]}, ${o.col[1]}, ${o.col[2]}, 0.90)`;
       ctx.beginPath();
-      ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+      ctx.arc(px, py, 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
 

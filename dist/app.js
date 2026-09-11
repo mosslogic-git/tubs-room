@@ -5,7 +5,7 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {MeshoptDecoder} from './vendor/meshopt_decoder.mjs';
 import {RoomEnvironment} from './vendor/RoomEnvironment.js';
-import {configuration,stages,placements,dimensionsForArea,monitorPlacements} from './config.js?v=djlift_head';
+import {configuration,stages,placements,dimensionsForArea,monitorPlacements,isStudioMode} from './config.js?v=djlift_head';
 import {speakerFrame,pickSpeaker,bindSpeakerSelection} from './speaker-focus.js';
 import {createRoomWalk,bindRoomWalk} from './camera-walk.js';
 import {createCameraZoom,bindCameraGestures} from './camera-zoom.js';
@@ -195,7 +195,7 @@ async function init(){
 
  applyLighting();
  function animate(time){frame=requestAnimationFrame(animate);if(document.hidden)return;const dt=Math.min((time-last)/1000,.1)||.016;last=time;const t=reduced?1:1-Math.exp(-5*dt);currentSize.lerp(targetSize,t);room.scale.copy(currentSize);
-  const area=currentSize.x*currentSize.z,isStudio=(area<=45)||(configuration(area).id==='hifi');
+  const isStudio = isStudioMode(state);
   if(isStudio){
    djBooth.group.visible=false;
    studioSuite.setVisible(true);

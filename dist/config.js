@@ -7,6 +7,15 @@ export const stages=[
 ];
 export function configuration(area){return stages[area<50?0:area<120?1:2];}
 export function dimensionsForArea(area,ratio=.8){let width=Math.sqrt(area*ratio),depth=area/width;if(width<4){width=4;depth=area/width;}if(width>16){width=16;depth=area/width;}if(depth<5){depth=5;width=area/depth;}if(depth>20){depth=20;width=area/depth;}return {width,depth};}
+export function isStudioMode(state){
+ if(!state)return false;
+ if(state.club)return false;
+ const area=state.width*state.depth;
+ const c=configuration(area);
+ if(c.id!=='hifi'||area>38)return false;
+ if(state.model==='dc12'||state.model==='gc410'||state.model==='gc218'||state.model==='gc118-sub')return false;
+ return true;
+}
 export function placements(state){
  const c=configuration(state.width*state.depth);
  const defaultTopId=c.products.find(p=>p.role==='top').id;
@@ -14,7 +23,7 @@ export function placements(state){
  const topId=isKnownTop?state.model:defaultTopId;
  const bassId=c.products.find(p=>p.role==='bass')?.id;
  const ts=speakerSpecs[topId].size,bs=bassId?speakerSpecs[bassId].size:[0,0,0],model=state.model==='auto'?c.model:(Number.isFinite(+state.model)?Number(state.model):c.model),items=[],n=c.subs/2,gap=.035;
- const isStudio = (state.width * state.depth <= 45) || (c.id === 'hifi');
+ const isStudio = isStudioMode(state);
  const cols=n>2?2:1,stackWidth=n?cols*bs[0]+(cols-1)*gap:ts[0];
  const defaultSpread=Math.min(4.8,state.width/2-stackWidth/2-.3);
  const studioSpread=Math.min(1.75,state.width/2-ts[0]/2-.25);

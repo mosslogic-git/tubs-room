@@ -37,7 +37,12 @@ function update(){
  ['width','depth','height'].forEach(k=>{$(k).value=state[k];$(k+'-out').textContent=state[k].toFixed(1)+' m';});
  $('room-label').textContent=`${state.width.toFixed(1)} × ${state.depth.toFixed(1)} × ${state.height.toFixed(1)} m`;
  $('system-name').textContent=config.name;$('chapter').textContent=config.tier+' / '+config.family.toUpperCase();$('total-count').textContent=config.tops+config.subs;
- document.querySelectorAll('[data-area]').forEach(b=>{const active=configuration(+b.dataset.area).id===config.id;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active);});
+ const curArea=Math.round(area);
+ document.querySelectorAll('[data-area]').forEach(b=>{
+  const a=+b.dataset.area;
+  const active=Math.abs(a-curArea)<14||(a===30&&curArea<45)||(a===50&&curArea>=45&&curArea<65)||(a===80&&curArea>=65&&curArea<130)||(a===180&&curArea>=130&&curArea<250)||(a===320&&curArea>=250);
+  b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+ });
  $('layout').disabled=config.subs===0;
  syncNavigation(config);targetSize.set(state.width,state.height,state.depth);
  if(ready){arrange();acoustics?.update(state);if(state.view!=='inside')setView(state.view);}
@@ -57,7 +62,7 @@ $('nav-system-btn')?.addEventListener('click',()=>{toggleDetails(true);selectTab
 $('nav-guide-btn')?.addEventListener('click',()=>{toggleDetails(true);selectTab($('tab-info'));});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('details').hidden)toggleDetails(false);else clearFocus();}});
 $('reset').addEventListener('click',()=>{zoom.reset();walk.reset({width:8,depth:10});Object.assign(state,{width:8,depth:10,height:3.5,model:'auto',cluster:false});$('model').value='auto';$('layout').checked=false;update();setView('inside');});
-$('reset-view').addEventListener('click',()=>{zoom.reset();walk.reset(state);clearFocus();setView('inside');});document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+document.querySelectorAll('#reset-view, #hud-reset-view').forEach(b=>b.addEventListener('click',()=>{zoom.reset();walk.reset(state);clearFocus();setView('inside');}));document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 $('lighting').addEventListener('click',()=>{state.club=!state.club;document.body.classList.toggle('club',state.club);$('lighting').setAttribute('aria-pressed',state.club);applyLighting();});
 $('unfocus').addEventListener('click',clearFocus);
 function clearFocus(){state.focus=null;focusedSpeaker=null;$('focus-info').hidden=true;document.body.classList.remove('focused');syncNavigation(configuration(state.width*state.depth));yaw=pitch=0;}

@@ -20,6 +20,30 @@ export function createStudioSuite() {
     roughness: 0.2,
     metalness: 0.95
   });
+  const texLoader = typeof document !== 'undefined' ? new THREE.TextureLoader() : null;
+  const standNormal = texLoader ? texLoader.load('./assets/stand-normal.png') : null;
+  if (standNormal) {
+    standNormal.wrapS = standNormal.wrapT = THREE.RepeatWrapping;
+    standNormal.repeat.set(2, 4);
+  }
+  const standRoughness = texLoader ? texLoader.load('./assets/stand-roughness.png') : null;
+  if (standRoughness) {
+    standRoughness.wrapS = standRoughness.wrapT = THREE.RepeatWrapping;
+    standRoughness.repeat.set(2, 4);
+  }
+  const castIronMat = new THREE.MeshStandardMaterial({
+    color: 0x141618,
+    roughness: 0.82,
+    metalness: 0.22,
+    normalMap: standNormal,
+    normalScale: new THREE.Vector2(0.85, 0.85),
+    roughnessMap: standRoughness
+  });
+  const neopreneMat = new THREE.MeshStandardMaterial({
+    color: 0x090b0d,
+    roughness: 0.94,
+    metalness: 0.04
+  });
   const armrestMat = new THREE.MeshStandardMaterial({
     color: 0x0f1113,
     roughness: 0.85
@@ -271,41 +295,97 @@ export function createStudioSuite() {
   }
   renderDawScreen(0, 0.75);
 
-  // 4. PEDESTAL SPEAKER STANDS (Flanking Console)
+  // 4. PEDESTAL SPEAKER STANDS (Flanking Console, Acoustic Decoupled)
   const standGroup = new THREE.Group();
   group.add(standGroup);
 
-  const standPositions = [
-    { x: -1.75, z: -1.45 },
-    { x:  1.75, z: -1.45 }
-  ];
+  const stands = [];
+  const standSides = [-1, 1];
 
-  for (const pos of standPositions) {
+  for (const side of standSides) {
     const sG = new THREE.Group();
-    sG.position.set(pos.x, 0, pos.z);
+    sG.position.set(side * 1.75, 0, -1.45);
     standGroup.add(sG);
 
-    createBox(0.46, 0.045, 0.46, darkMetalMat, 0, 0.0225, 0, sG);
-    for (const sx of [-0.19, 0.19]) {
-      for (const sz of [-0.19, 0.19]) {
+    // A. Base Assembly (Resting flat on the floor with isolation spikes)
+    const baseGroup = new THREE.Group();
+    sG.add(baseGroup);
+
+    // Heavy cast-iron base plate with beveled rim
+    createBox(0.44, 0.038, 0.44, castIronMat, 0, 0.024, 0, baseGroup);
+    for (const sx of [-0.185, 0.185]) {
+      for (const sz of [-0.185, 0.185]) {
         const spike = new THREE.Mesh(
-          new THREE.ConeGeometry(0.012, 0.02, 12),
+          new THREE.ConeGeometry(0.012, 0.022, 16),
           chromeMat
         );
         spike.rotation.x = Math.PI;
-        spike.position.set(sx, 0.008, sz);
-        sG.add(spike);
+        spike.position.set(sx, 0.009, sz);
+        baseGroup.add(spike);
       }
     }
-    for (const cx of [-0.08, 0.08]) {
-      createBox(0.09, 0.88, 0.09, darkMetalMat, cx, 0.485, 0, sG);
+
+    // Twin heavy structural pillars (dual column for vibration stability)
+    for (const cx of [-0.075, 0.075]) {
+      createBox(0.08, 0.865, 0.08, castIronMat, cx, 0.475, 0, baseGroup);
     }
-    createBox(0.36, 0.025, 0.36, darkMetalMat, 0, 0.94, 0, sG);
-    for (const px of [-0.12, 0.12]) {
-      for (const pz of [-0.12, 0.12]) {
-        createBox(0.05, 0.01, 0.05, blackDeskMat, px, 0.957, pz, sG);
+    // Middle stabilizing bridge clamp with hex bolt accents
+    createBox(0.24, 0.045, 0.09, darkMetalMat, 0, 0.50, 0, baseGroup);
+
+    // B. Top Head Assembly (Rotates with toe-in to cradle the monitor)
+    const topHead = new THREE.Group();
+    topHead.rotation.y = -side * 0.32;
+    sG.add(topHead);
+
+    // Top sub-plate / column collar
+    createBox(0.24, 0.022, 0.24, darkMetalMat, 0, 0.918, 0, topHead);
+
+    // Decoupled top mounting plate (framed for studio monitors)
+    const topPlateW = 0.30;
+    const topPlateD = 0.36;
+    const topPlateH = 0.020;
+    const topPlateY = 0.938;
+    const topPlate = createBox(topPlateW, topPlateH, topPlateD, castIronMat, 0, topPlateY, 0, topHead);
+
+    // Subtle chamfered edge trim for top plate
+    for (const ex of [-1, 1]) {
+      const bevel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.010, topPlateH * 0.9, topPlateD - 0.01),
+        darkMetalMat
+      );
+      bevel.position.set(ex * (topPlateW / 2 - 0.004), topPlateY, 0);
+      bevel.rotation.z = ex * Math.PI / 4;
+      topHead.add(bevel);
+    }
+
+    // 4 High-Density Neoprene Isolation Damping Pucks
+    // Speaker sits at y = 0.965m; Top plate is at y = 0.938 + 0.010 = 0.948m
+    // Pucks are 0.017m tall (from 0.948m to 0.965m). Top of pucks sits at 0.965m EXACTLY!
+    const puckH = 0.017;
+    const puckY = 0.948 + puckH / 2;
+    const puckGeo = new THREE.CylinderGeometry(0.024, 0.024, puckH, 20);
+    const pucks = [];
+    const defaultKx = 0.106; // fits Mackie HR824 (0.28m wide)
+    const defaultKz = 0.125; // fits Mackie HR824 (0.33m deep)
+
+    for (const px of [-defaultKx, defaultKx]) {
+      for (const pz of [-defaultKz, defaultKz]) {
+        const puck = new THREE.Mesh(puckGeo, neopreneMat);
+        puck.position.set(px, puckY, pz);
+        puck.castShadow = true;
+        topHead.add(puck);
+        pucks.push(puck);
       }
     }
+
+    stands.push({
+      group: sG,
+      baseGroup,
+      topHead,
+      topPlate,
+      pucks,
+      side
+    });
   }
 
   // 5. ERGONOMIC STUDIO TASK CHAIR (Aeron Style at Sweet Spot)
@@ -527,8 +607,45 @@ export function createStudioSuite() {
         l.intensity = club ? 0.6 : 0.85;
       });
     },
+    syncStands(speakers, suiteWorldZ = 0) {
+      if (!speakers || !stands.length) return;
+      const tops = speakers.filter(s => s.role === 'top' && s.scale > 0.01);
+      if (tops.length === 0) return;
+      const sorted = [...tops].sort((a, b) => a.position.x - b.position.x);
+      for (let i = 0; i < stands.length; i++) {
+        const stand = stands[i];
+        const spk = sorted[i] || (stand.side < 0 ? sorted[0] : sorted[sorted.length - 1]);
+        if (!spk) continue;
+
+        // Position stand in suite local coordinates
+        stand.group.position.x = spk.position.x;
+        stand.group.position.z = spk.position.z - suiteWorldZ;
+
+        // Rotate top assembly to match exact monitor toe-in
+        stand.topHead.rotation.y = spk.object.rotation.y;
+
+        // Dynamically frame isolation pucks and top plate under speaker base
+        if (spk.size && spk.size.length >= 3) {
+          const sw = spk.size[0] || 0.28;
+          const sd = spk.size[2] || 0.33;
+          const kx = sw * 0.38;
+          const kz = sd * 0.38;
+          if (stand.pucks.length === 4) {
+            stand.pucks[0].position.set(-kx, 0.9565, -kz);
+            stand.pucks[1].position.set(-kx, 0.9565,  kz);
+            stand.pucks[2].position.set( kx, 0.9565, -kz);
+            stand.pucks[3].position.set( kx, 0.9565,  kz);
+          }
+          stand.topPlate.scale.set(
+            Math.max(1, (sw + 0.04) / 0.30),
+            1,
+            Math.max(1, (sd + 0.04) / 0.36)
+          );
+        }
+      }
+    },
     getStandPositions() {
-      return standPositions;
+      return stands.map(s => ({ x: s.group.position.x, z: s.group.position.z }));
     }
   };
 }

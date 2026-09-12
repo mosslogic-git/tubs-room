@@ -1,15 +1,60 @@
 import * as THREE from './vendor/three.module.js';
 
+let texturesCache = null;
+function getCabinetTextures() {
+  if (texturesCache) return texturesCache;
+  if (typeof document === 'undefined') {
+    return { cabinetNormal: null, cabinetRoughness: null, coneNormal: null, waveguideNormal: null };
+  }
+  const loader = new THREE.TextureLoader();
+  const cabinetNormal = loader.load('./assets/cabinet-normal.png');
+  cabinetNormal.wrapS = cabinetNormal.wrapT = THREE.RepeatWrapping;
+  cabinetNormal.repeat.set(2, 3);
+
+  const cabinetRoughness = loader.load('./assets/cabinet-roughness.png');
+  cabinetRoughness.wrapS = cabinetRoughness.wrapT = THREE.RepeatWrapping;
+  cabinetRoughness.repeat.set(2, 3);
+
+  const coneNormal = loader.load('./assets/cone-normal.png');
+
+  const waveguideNormal = loader.load('./assets/waveguide-normal.png');
+  waveguideNormal.wrapS = waveguideNormal.wrapT = THREE.RepeatWrapping;
+  waveguideNormal.repeat.set(2, 2);
+
+  texturesCache = { cabinetNormal, cabinetRoughness, coneNormal, waveguideNormal };
+  return texturesCache;
+}
+
 // Dimensioned visual representations refined from Blender production models.
 // Built at metre scale with exact Tub's satin green (20% darker than side walls),
 // recessed front baffle, realistic driver cones, dispersion horns, and reflex ports.
 export function dimensionedCabinet(id, size, color = 0x111315, tilt = 0) {
   const [w, h, d] = size, group = new THREE.Group();
   const bodyGroup = new THREE.Group();
-  const shell = new THREE.MeshStandardMaterial({color, roughness: 0.78});
+  const textures = getCabinetTextures();
+  const shell = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.80,
+    metalness: 0.05,
+    normalMap: textures.cabinetNormal,
+    normalScale: new THREE.Vector2(0.85, 0.85),
+    roughnessMap: textures.cabinetRoughness
+  });
   shell.name = 'cabinet-shell';
-  const dark = new THREE.MeshStandardMaterial({color: 0x111514, roughness: 0.92});
-  const cone = new THREE.MeshStandardMaterial({color: 0x252c29, roughness: 0.85});
+  const dark = new THREE.MeshStandardMaterial({
+    color: 0x111514,
+    roughness: 0.86,
+    metalness: 0.12,
+    normalMap: textures.cabinetNormal,
+    normalScale: new THREE.Vector2(0.5, 0.5)
+  });
+  const cone = new THREE.MeshStandardMaterial({
+    color: 0x222725,
+    roughness: 0.72,
+    metalness: 0.10,
+    normalMap: textures.coneNormal,
+    normalScale: new THREE.Vector2(1.25, 1.25)
+  });
   const metal = new THREE.MeshStandardMaterial({color: 0x6b746d, roughness: 0.35, metalness: 0.85});
   const steel = new THREE.MeshStandardMaterial({color: 0x1a201c, roughness: 0.45, metalness: 0.75});
   const wall = 0.018;
@@ -61,8 +106,14 @@ export function dimensionedCabinet(id, size, color = 0x111315, tilt = 0) {
       chamfer.rotation.z = sx * Math.PI / 4;
       bodyGroup.add(chamfer);
     }
-    const hpsY = h * 0.73, hpsZ = d / 2 - 0.032;
-    const hpsDish = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.038, 0.014, 32), dark);
+    const hpsMat = new THREE.MeshStandardMaterial({
+      color: 0x141719,
+      roughness: 0.55,
+      metalness: 0.35,
+      normalMap: textures.waveguideNormal,
+      normalScale: new THREE.Vector2(0.65, 0.65)
+    });
+    const hpsDish = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.038, 0.014, 32), hpsMat);
     hpsDish.rotation.x = Math.PI / 2;
     hpsDish.position.set(0, hpsY, hpsZ - 0.006);
     bodyGroup.add(hpsDish);
@@ -104,13 +155,33 @@ export function dimensionedCabinet(id, size, color = 0x111315, tilt = 0) {
     bodyGroup.add(logoPlate);
   } else if (id === 'mackie-hr824') {
     // Mackie HR824 Mk2: Cast Aluminum Zero Edge baffle, Titanium dome waveguide, 8.75" woofer, Mackie green badge
-    box(w - 0.008, h - 0.008, 0.022, 0, h / 2, d / 2 - 0.02, dark);
+    const zeroEdgeMat = new THREE.MeshStandardMaterial({
+      color: 0x15181b,
+      roughness: 0.62,
+      metalness: 0.28,
+      normalMap: textures.waveguideNormal,
+      normalScale: new THREE.Vector2(0.75, 0.75)
+    });
+    box(w - 0.008, h - 0.008, 0.022, 0, h / 2, d / 2 - 0.02, zeroEdgeMat);
+    for (const sx of [-1, 1]) {
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.012, h - 0.02, 0.012), zeroEdgeMat);
+      edge.position.set(sx * (w / 2 - 0.006), h / 2, d / 2 - 0.012);
+      edge.rotation.y = sx * Math.PI / 4;
+      bodyGroup.add(edge);
+    }
     const twY = h * 0.75, twZ = d / 2 - 0.016;
-    const wg = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.032, 0.014, 36), dark);
+    const wgMat = new THREE.MeshStandardMaterial({
+      color: 0x121517,
+      roughness: 0.52,
+      metalness: 0.35,
+      normalMap: textures.waveguideNormal,
+      normalScale: new THREE.Vector2(0.65, 0.65)
+    });
+    const wg = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.032, 0.014, 36), wgMat);
     wg.rotation.x = Math.PI / 2;
     wg.position.set(0, twY, twZ - 0.007);
     bodyGroup.add(wg);
-    const tiMat = new THREE.MeshStandardMaterial({color: 0xb5bfb8, metalness: 0.85, roughness: 0.25});
+    const tiMat = new THREE.MeshStandardMaterial({color: 0xc4cec8, metalness: 0.90, roughness: 0.22});
     const dome = new THREE.Mesh(new THREE.SphereGeometry(0.016, 24, 12), tiMat);
     dome.scale.set(1, 1, 0.45);
     dome.position.set(0, twY, twZ - 0.004);
@@ -119,14 +190,21 @@ export function dimensionedCabinet(id, size, color = 0x111315, tilt = 0) {
     lens.position.set(0, twY, twZ);
     bodyGroup.add(lens);
     const wfY = h * 0.38, wfZ = d / 2 - 0.016, wfR = 0.098;
-    const wfSurround = new THREE.Mesh(new THREE.TorusGeometry(wfR, 0.0085, 12, 48), dark);
+    const rubberMat = new THREE.MeshStandardMaterial({color: 0x0e1110, roughness: 0.46, metalness: 0.05});
+    const wfSurround = new THREE.Mesh(new THREE.TorusGeometry(wfR, 0.0085, 12, 48), rubberMat);
     wfSurround.position.set(0, wfY, wfZ);
     bodyGroup.add(wfSurround);
     const wfCone = new THREE.Mesh(new THREE.ConeGeometry(wfR - 0.01, 0.032, 48, 1, true), cone);
     wfCone.rotation.x = Math.PI / 2;
     wfCone.position.set(0, wfY, wfZ - 0.018);
     bodyGroup.add(wfCone);
-    const wfCap = new THREE.Mesh(new THREE.SphereGeometry(wfR * 0.35, 24, 12), dark);
+    const capMat = new THREE.MeshStandardMaterial({
+      color: 0x181c1a,
+      roughness: 0.75,
+      normalMap: textures.cabinetNormal,
+      normalScale: new THREE.Vector2(0.4, 0.4)
+    });
+    const wfCap = new THREE.Mesh(new THREE.SphereGeometry(wfR * 0.35, 24, 12), capMat);
     wfCap.scale.set(1, 1, 0.35);
     wfCap.position.set(0, wfY, wfZ - 0.008);
     bodyGroup.add(wfCap);

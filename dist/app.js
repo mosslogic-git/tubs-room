@@ -199,8 +199,10 @@ async function init(){
   if(isStudio){
    djBooth.group.visible=false;
    studioSuite.setVisible(true);
-   studioSuite.group.position.set(0,0,-currentSize.z/2+1.85);
+   const suiteZ = -currentSize.z/2+1.85;
+   studioSuite.group.position.set(0,0,suiteZ);
    studioSuite.update(dt,(time||0)*.001,.75);
+   studioSuite.syncStands(speakers, suiteZ);
   }else{
    studioSuite.setVisible(false);
    djBooth.group.position.set(0,0,-currentSize.z/2+1.15);

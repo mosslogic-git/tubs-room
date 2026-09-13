@@ -25,8 +25,8 @@ const walk=createRoomWalk();
 let focusedSpeaker=null;
 const nav=$('products');
 nav.innerHTML=stages.map(s=>`<section class="product-group" data-group="${s.id}"><button class="group-button" data-stage="${s.id}" aria-expanded="false" aria-controls="list-${s.id}"><span>${s.family}</span><span>${s.tier}</span></button><div class="product-list"><div id="list-${s.id}" inert>${s.products.map(p=>`<button class="product-item" data-product="${p.id}"><span>${p.name}</span><span class="qty">×${p.count}</span></button>`).join('')}</div></div></section>`).join('');
-nav.querySelectorAll('[data-stage]').forEach(b=>b.addEventListener('click',()=>{const s=stages.find(s=>s.id===b.dataset.stage);Object.assign(state,dimensionsForArea(s.area));update();}));
-nav.querySelectorAll('[data-product]').forEach(b=>b.addEventListener('click',()=>{const p=configuration(state.width*state.depth).products.find(p=>p.id===b.dataset.product);if(p)focusProduct(p);}));
+nav.querySelectorAll('[data-stage]').forEach(b=>b.addEventListener('click',()=>{const s=stages.find(s=>s.id===b.dataset.stage);Object.assign(state,dimensionsForArea(s.area));if(s.id==='hifi'){state.model='adam-a7v';if($('model'))$('model').value='adam-a7v';}update();}));
+nav.querySelectorAll('[data-product]').forEach(b=>b.addEventListener('click',()=>{const p=configuration(state.width*state.depth).products.find(p=>p.id===b.dataset.product);if(p){state.model=p.id;if($('model'))$('model').value=p.id;focusProduct(p);}}));
 function syncNavigation(config){
  document.querySelectorAll('[data-group]').forEach(g=>{const active=g.dataset.group===config.id;g.classList.toggle('current',active);g.querySelector('.group-button').setAttribute('aria-expanded',String(active));g.querySelector('.product-list>div').inert=!active;});
  nav.querySelectorAll('[data-product]').forEach(b=>{const active=b.dataset.product===(state.focus||config.products[0].id);b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
@@ -62,7 +62,7 @@ function renderSystemSpecs(modelId){
 }
 $('size').addEventListener('input',e=>{Object.assign(state,dimensionsForArea(+e.target.value,state.width/state.depth));update();});
 ['width','depth','height'].forEach(k=>$(k).addEventListener('input',e=>{state[k]=+e.target.value;update();}));
-document.querySelectorAll('[data-area]').forEach(b=>b.addEventListener('click',()=>{Object.assign(state,dimensionsForArea(+b.dataset.area));update();}));
+document.querySelectorAll('[data-area]').forEach(b=>b.addEventListener('click',()=>{const a=+b.dataset.area;Object.assign(state,dimensionsForArea(a));if(a<=38){state.model='adam-a7v';if($('model'))$('model').value='adam-a7v';}update();}));
 $('model').addEventListener('change',e=>{state.model=e.target.value;renderSystemSpecs(state.model);update();});$('layout').addEventListener('change',e=>{state.cluster=e.target.checked;update();});
 function toggleDetails(open){walk.stop();$('details').hidden=!open;$('details-btn').setAttribute('aria-expanded',String(open));if(open)$('close-details').focus();else $('details-btn').focus();}
 const tabs=[...document.querySelectorAll('[data-tab]')];

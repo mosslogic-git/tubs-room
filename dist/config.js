@@ -18,12 +18,12 @@ export function isStudioMode(state){
 }
 export function placements(state){
  const c=configuration(state.width*state.depth);
- const defaultTopId=c.products.find(p=>p.role==='top').id;
+ const isStudio = isStudioMode(state);
+ const defaultTopId=isStudio?'adam-a7v':c.products.find(p=>p.role==='top').id;
  const isKnownTop=state.model&&speakerSpecs[state.model]&&!speakerSpecs[state.model].name.includes('Subwoofer');
- const topId=isKnownTop?state.model:defaultTopId;
+ const topId=isStudio?(state.model==='mackie-hr824'||state.model==='mackie-cr5'||state.model==='obslk'?state.model:'adam-a7v'):(isKnownTop?state.model:defaultTopId);
  const bassId=c.products.find(p=>p.role==='bass')?.id;
  const ts=speakerSpecs[topId].size,bs=bassId?speakerSpecs[bassId].size:[0,0,0],model=state.model==='auto'?c.model:(Number.isFinite(+state.model)?Number(state.model):c.model),items=[],n=c.subs/2,gap=.035;
- const isStudio = isStudioMode(state);
  const cols=n>2?2:1,stackWidth=n?cols*bs[0]+(cols-1)*gap:ts[0];
  const defaultSpread=Math.min(4.8,state.width/2-stackWidth/2-.3);
  const studioSpread=Math.min(1.75,state.width/2-ts[0]/2-.25);

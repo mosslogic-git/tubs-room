@@ -48,25 +48,6 @@ export function createStudioSuite() {
     color: 0x0f1113,
     roughness: 0.85
   });
-  const rackPanelMat = new THREE.MeshStandardMaterial({
-    color: 0x181c20,
-    roughness: 0.5,
-    metalness: 0.4
-  });
-  const silverFaceMat = new THREE.MeshStandardMaterial({
-    color: 0xabb4be,
-    roughness: 0.3,
-    metalness: 0.75
-  });
-  const amberVuMat = new THREE.MeshBasicMaterial({
-    color: 0xffaa33
-  });
-  const blueLedMat = new THREE.MeshBasicMaterial({
-    color: 0x2288ff
-  });
-  const greenLedMat = new THREE.MeshBasicMaterial({
-    color: 0x33dd66
-  });
   const meshChairMat = new THREE.MeshStandardMaterial({
     color: 0x1e2226,
     roughness: 0.88,
@@ -133,169 +114,12 @@ export function createStudioSuite() {
   armrest.castShadow = true;
   deskGroup.add(armrest);
 
-  // Angled Rack Bays & Mixing Surface (Left, Center-Left, Center-Right, Right)
-  const bayW = 0.58;
-  const bayGroup = new THREE.Group();
-  bayGroup.position.set(0, 0.77, 0.08);
-  deskGroup.add(bayGroup);
-
-  // Slanted console face
-  const consoleAngle = -0.22; // ~12 degrees slant towards engineer
-  const faceGroup = new THREE.Group();
-  faceGroup.rotation.x = consoleAngle;
-  bayGroup.add(faceGroup);
-
-  for (let b = 0; b < 4; b++) {
-    const bx = (b - 1.5) * (bayW + 0.04);
-    createBox(bayW, 0.42, 0.03, rackPanelMat, bx, 0.21, 0, faceGroup);
-
-    if (b === 0 || b === 3) {
-      // Analog Outboard Fader/Knob Channel Strips
-      for (let ch = 0; ch < 6; ch++) {
-        const cx = bx - bayW / 2 + 0.05 + ch * 0.095;
-        createBox(0.012, 0.16, 0.01, darkMetalMat, cx, 0.11, 0.018, faceGroup);
-        createBox(0.024, 0.018, 0.016, silverFaceMat, cx, 0.11 + (ch % 3) * 0.03, 0.026, faceGroup);
-        for (let k = 0; k < 3; k++) {
-          const knob = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.012, 0.012, 0.012, 16),
-            darkMetalMat
-          );
-          knob.rotation.x = Math.PI / 2;
-          knob.position.set(cx, 0.25 + k * 0.055, 0.02);
-          faceGroup.add(knob);
-        }
-      }
-    } else {
-      // Mastering Equalizers, Compressors & Glowing VU meters
-      createBox(bayW - 0.03, 0.12, 0.02, silverFaceMat, bx, 0.09, 0.018, faceGroup);
-      for (const vx of [-0.12, 0.12]) {
-        const vuBezel = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.034, 0.034, 0.01, 24),
-          darkMetalMat
-        );
-        vuBezel.rotation.x = Math.PI / 2;
-        vuBezel.position.set(bx + vx, 0.1, 0.026);
-        faceGroup.add(vuBezel);
-
-        const vuFace = new THREE.Mesh(
-          new THREE.CircleGeometry(0.028, 24),
-          amberVuMat
-        );
-        vuFace.position.set(bx + vx, 0.1, 0.032);
-        faceGroup.add(vuFace);
-
-        const needle = new THREE.Mesh(
-          new THREE.BoxGeometry(0.002, 0.024, 0.001),
-          blackDeskMat
-        );
-        needle.position.set(bx + vx + 0.004, 0.104, 0.033);
-        needle.rotation.z = -0.3;
-        faceGroup.add(needle);
-      }
-
-      createBox(bayW - 0.03, 0.13, 0.02, rackPanelMat, bx, 0.24, 0.018, faceGroup);
-      for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < 8; col++) {
-          const btn = new THREE.Mesh(
-            new THREE.BoxGeometry(0.032, 0.024, 0.008),
-            (col % 2 === 0) ? blueLedMat : greenLedMat
-          );
-          btn.position.set(bx - 0.2 + col * 0.056, 0.21 + row * 0.045, 0.028);
-          faceGroup.add(btn);
-        }
-      }
-    }
+  // Clean desktop cable grommets / passthroughs
+  for (const cx of [-0.65, 0.65]) {
+    createBox(0.08, 0.005, 0.04, darkMetalMat, cx, 0.771, -0.32, deskGroup);
   }
 
-  // Top Meter Bridge Shelf
-  const bridgeY = 0.96;
-  createBox(deskWidth + 0.06, 0.05, 0.36, blackDeskMat, 0, bridgeY, -0.22, deskGroup);
-
-  // 3. CENTRAL WIDESCREEN DAW DISPLAY (Spectrum Analyzer)
-  const dCanvas = document.createElement('canvas');
-  dCanvas.width = 512;
-  dCanvas.height = 256;
-  const dCtx = dCanvas.getContext('2d');
-  const dTexture = new THREE.CanvasTexture(dCanvas);
-  dTexture.colorSpace = THREE.SRGBColorSpace;
-
-  const dawScreenMat = new THREE.MeshBasicMaterial({
-    map: dTexture
-  });
-
-  const screenW = 1.05, screenH = 0.58;
-  const monitorFrame = createBox(screenW + 0.04, screenH + 0.04, 0.04, darkMetalMat, 0, bridgeY + 0.38, -0.28, deskGroup);
-  const monitorDisplay = new THREE.Mesh(
-    new THREE.PlaneGeometry(screenW, screenH),
-    dawScreenMat
-  );
-  monitorDisplay.position.set(0, 0, 0.022);
-  monitorFrame.add(monitorDisplay);
-
-  // Stand
-  createBox(0.28, 0.03, 0.22, darkMetalMat, 0, bridgeY + 0.03, -0.32, deskGroup);
-  createBox(0.06, 0.35, 0.05, darkMetalMat, 0, bridgeY + 0.19, -0.32, deskGroup);
-
-  function renderDawScreen(time = 0, soundLevel = 0.75) {
-    dCtx.fillStyle = '#0a0d12';
-    dCtx.fillRect(0, 0, 512, 256);
-
-    // DAW Top Bar
-    dCtx.fillStyle = '#141a22';
-    dCtx.fillRect(0, 0, 512, 24);
-    dCtx.fillStyle = '#4ade80';
-    dCtx.font = 'bold 11px system-ui, sans-serif';
-    dCtx.fillText('MASTERING SUITE — 96kHz / 32-bit float', 14, 16);
-    dCtx.fillStyle = '#94a3b8';
-    dCtx.fillText('PEAK: -0.3 dBFS   RMS: -14.2 LUFS', 320, 16);
-
-    // Grid lines
-    dCtx.strokeStyle = '#1e293b';
-    dCtx.lineWidth = 1;
-    for (let y = 40; y < 240; y += 32) {
-      dCtx.beginPath();
-      dCtx.moveTo(0, y);
-      dCtx.lineTo(512, y);
-      dCtx.stroke();
-    }
-    for (let x = 32; x < 512; x += 64) {
-      dCtx.beginPath();
-      dCtx.moveTo(x, 24);
-      dCtx.lineTo(x, 240);
-      dCtx.stroke();
-    }
-
-    // Spectrum Analyzer Bars
-    const numBars = 48;
-    const barW = 8;
-    const spacing = 10.4;
-    for (let i = 0; i < numBars; i++) {
-      const freq = i / numBars;
-      const wave = Math.sin(time * 4.5 + i * 0.35) * 0.25 + Math.cos(time * 3.2 - i * 0.2) * 0.18;
-      const bassBoost = Math.max(0, 1 - freq * 2.2) * 0.45;
-      const rolloff = Math.exp(-freq * 1.5);
-      const hNorm = Math.min(1, Math.max(0.08, (rolloff * 0.75 + bassBoost + wave) * soundLevel));
-      const barH = hNorm * 180;
-      const bx = 12 + i * spacing;
-      const by = 238 - barH;
-
-      const grad = dCtx.createLinearGradient(0, 238, 0, 58);
-      grad.addColorStop(0, '#0284c7');
-      grad.addColorStop(0.5, '#10b981');
-      grad.addColorStop(0.85, '#f59e0b');
-      grad.addColorStop(1, '#ef4444');
-
-      dCtx.fillStyle = grad;
-      dCtx.fillRect(bx, by, barW, barH);
-
-      dCtx.fillStyle = '#ffffff';
-      dCtx.fillRect(bx, Math.max(48, by - 4), barW, 2);
-    }
-    dTexture.needsUpdate = true;
-  }
-  renderDawScreen(0, 0.75);
-
-  // 4. PEDESTAL SPEAKER STANDS (Flanking Console, Acoustic Decoupled)
+  // 3. PEDESTAL SPEAKER STANDS (Flanking Desk, Acoustic Decoupled)
   const standGroup = new THREE.Group();
   group.add(standGroup);
 
@@ -341,8 +165,8 @@ export function createStudioSuite() {
     createBox(0.24, 0.022, 0.24, darkMetalMat, 0, 0.918, 0, topHead);
 
     // Decoupled top mounting plate (framed for studio monitors)
-    const topPlateW = 0.30;
-    const topPlateD = 0.36;
+    const topPlateW = 0.24;
+    const topPlateD = 0.32;
     const topPlateH = 0.020;
     const topPlateY = 0.938;
     const topPlate = createBox(topPlateW, topPlateH, topPlateD, castIronMat, 0, topPlateY, 0, topHead);
@@ -363,10 +187,10 @@ export function createStudioSuite() {
     // Pucks are 0.017m tall (from 0.948m to 0.965m). Top of pucks sits at 0.965m EXACTLY!
     const puckH = 0.017;
     const puckY = 0.948 + puckH / 2;
-    const puckGeo = new THREE.CylinderGeometry(0.024, 0.024, puckH, 20);
+    const puckGeo = new THREE.CylinderGeometry(0.020, 0.020, puckH, 20);
     const pucks = [];
-    const defaultKx = 0.106; // fits Mackie HR824 (0.28m wide)
-    const defaultKz = 0.125; // fits Mackie HR824 (0.33m deep)
+    const defaultKx = 0.076; // fits ADAM Audio A7V (0.20m wide)
+    const defaultKz = 0.106; // fits ADAM Audio A7V (0.28m deep)
 
     for (const px of [-defaultKx, defaultKx]) {
       for (const pz of [-defaultKz, defaultKz]) {
@@ -383,6 +207,8 @@ export function createStudioSuite() {
       baseGroup,
       topHead,
       topPlate,
+      topPlateW,
+      topPlateD,
       pucks,
       side
     });
@@ -462,88 +288,7 @@ export function createStudioSuite() {
     createBox(0.08, 0.03, 0.24, armrestMat, ax, 0.74, -0.01, chairGroup);
   }
 
-  // 6. SIDE OUTBOARD EQUIPMENT RACKS (Low Credenzas Left & Right)
-  const credenzaW = 1.05, credenzaH = 0.72, credenzaD = 0.54;
-  for (const side of [-1, 1]) {
-    const credGroup = new THREE.Group();
-    const cx = side * 2.35;
-    credGroup.position.set(cx, 0, -0.45);
-    credGroup.rotation.y = -side * 0.18;
-    group.add(credGroup);
-
-    createBox(credenzaW, credenzaH, credenzaD, blackDeskMat, 0, credenzaH / 2, 0, credGroup);
-
-    for (let bay = 0; bay < 2; bay++) {
-      const rx = (bay - 0.5) * 0.48;
-      for (const railX of [-0.22, 0.22]) {
-        createBox(0.015, credenzaH - 0.08, 0.02, darkMetalMat, rx + railX, credenzaH / 2, credenzaD / 2 - 0.02, credGroup);
-      }
-
-      for (let unit = 0; unit < 4; unit++) {
-        const uy = 0.12 + unit * 0.14;
-        const isTube = (unit + bay) % 2 === 0;
-        const faceMat = isTube ? silverFaceMat : rackPanelMat;
-        createBox(0.43, 0.12, 0.03, faceMat, rx, uy, credenzaD / 2 - 0.015, credGroup);
-
-        for (const hx of [-0.19, 0.19]) {
-          const handle = new THREE.Mesh(
-            new THREE.BoxGeometry(0.01, 0.08, 0.025),
-            darkMetalMat
-          );
-          handle.position.set(rx + hx, uy, credenzaD / 2 + 0.005);
-          credGroup.add(handle);
-        }
-
-        if (isTube) {
-          const vu = new THREE.Mesh(
-            new THREE.CircleGeometry(0.022, 16),
-            amberVuMat
-          );
-          vu.position.set(rx, uy, credenzaD / 2 + 0.002);
-          credGroup.add(vu);
-        } else {
-          for (let led = 0; led < 6; led++) {
-            const ind = new THREE.Mesh(
-              new THREE.BoxGeometry(0.008, 0.008, 0.004),
-              (led > 4) ? amberVuMat : greenLedMat
-            );
-            ind.position.set(rx - 0.08 + led * 0.032, uy, credenzaD / 2 + 0.002);
-            credGroup.add(ind);
-          }
-        }
-      }
-    }
-
-    if (side === 1) {
-      const ttBase = createBox(0.42, 0.05, 0.36, darkMetalMat, 0.1, credenzaH + 0.025, 0, credGroup);
-      const platter = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.14, 0.14, 0.02, 32),
-        silverFaceMat
-      );
-      platter.position.set(0, 0.035, 0);
-      ttBase.add(platter);
-      const vinyl = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.13, 0.13, 0.003, 32),
-        blackDeskMat
-      );
-      vinyl.position.set(0, 0.012, 0);
-      platter.add(vinyl);
-      const dustcover = new THREE.Mesh(
-        new THREE.BoxGeometry(0.41, 0.09, 0.35),
-        new THREE.MeshStandardMaterial({
-          color: 0x99aebb,
-          roughness: 0.1,
-          metalness: 0.2,
-          transparent: true,
-          opacity: 0.35
-        })
-      );
-      dustcover.position.set(0, 0.07, 0);
-      ttBase.add(dustcover);
-    }
-  }
-
-  // 7. ARCHITECTURAL SLATTED ACOUSTIC WALL DIFFUSERS (Left and Right Walls)
+  // 5. ARCHITECTURAL SLATTED ACOUSTIC WALL DIFFUSERS (Left and Right Walls)
   const diffuserGroup = new THREE.Group();
   group.add(diffuserGroup);
 
@@ -595,7 +340,7 @@ export function createStudioSuite() {
   return {
     group,
     update(dt, time, soundEnergy = 0.75) {
-      renderDawScreen(time, soundEnergy);
+      // Clean desk without DAW screen updates
     },
     setVisible(visible) {
       group.visible = visible;
@@ -626,8 +371,8 @@ export function createStudioSuite() {
 
         // Dynamically frame isolation pucks and top plate under speaker base
         if (spk.size && spk.size.length >= 3) {
-          const sw = spk.size[0] || 0.28;
-          const sd = spk.size[2] || 0.33;
+          const sw = spk.size[0] || 0.20;
+          const sd = spk.size[2] || 0.28;
           const kx = sw * 0.38;
           const kz = sd * 0.38;
           if (stand.pucks.length === 4) {
@@ -636,10 +381,12 @@ export function createStudioSuite() {
             stand.pucks[2].position.set( kx, 0.9565, -kz);
             stand.pucks[3].position.set( kx, 0.9565,  kz);
           }
+          const baseW = stand.topPlateW || 0.24;
+          const baseD = stand.topPlateD || 0.32;
           stand.topPlate.scale.set(
-            Math.max(1, (sw + 0.04) / 0.30),
+            (sw + 0.035) / baseW,
             1,
-            Math.max(1, (sd + 0.04) / 0.36)
+            (sd + 0.035) / baseD
           );
         }
       }
